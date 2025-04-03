@@ -9,6 +9,8 @@ import * as teams from './tools/teams.js';
 import * as addons from './tools/addons.js';
 import * as data from './tools/data.js';
 import * as maintenance from './tools/maintenance.js';
+import * as ps from './tools/ps.js';
+import * as pipelines from './tools/pipelines.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
 
@@ -52,6 +54,18 @@ data.registerPgKillTool(server, herokuRepl);
 data.registerPgMaintenanceTool(server, herokuRepl);
 data.registerPgBackupsTool(server, herokuRepl);
 data.registerPgUpgradeTool(server, herokuRepl);
+
+// Process-related tools
+ps.registerPsListTool(server, herokuRepl);
+ps.registerPsScaleTool(server, herokuRepl);
+ps.registerPsRestartTool(server, herokuRepl);
+
+// Pipelines-related tools
+pipelines.registerPipelinesCreateTool(server, herokuRepl);
+pipelines.registerPipelinesPromoteTool(server, herokuRepl);
+pipelines.registerPipelinesListTool(server, herokuRepl);
+pipelines.registerPipelinesInfoTool(server, herokuRepl);
+
 /**
  * Run the server
  */
