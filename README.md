@@ -21,7 +21,7 @@ the future of this project.
 Install the Heroku Platform MCP Server globally using npm:
 
 ```sh
-npm -i -g @heroku/mcp-server
+npm i -g @heroku/mcp-server
 ```
 
 ## Configuration

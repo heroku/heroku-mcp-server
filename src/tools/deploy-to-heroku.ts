@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { ValidatorResult } from 'jsonschema';
-import { AppSetup, Build } from '@heroku-cli/schema';
+import { AppSetup, Build, Dyno } from '@heroku-cli/schema';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
@@ -11,6 +11,8 @@ import AppSetupService, { AppSetupCreatePayload } from '../services/app-setup-se
 import BuildService, { type BuildCreatePayload } from '../services/build-service.js';
 import { generateRequestInit } from '../utils/generate-request-init.js';
 import { packSources } from '../utils/tarball.js';
+import DynoService from '../services/dyno-service.js';
+import ConfigVarService from '../services/config-var-service.js';
 
 const appJsonSchema = await import('../utils/app-json.schema.json', { with: { type: 'json' } });
 /**
@@ -143,6 +145,18 @@ export type DeploymentOptions = {
 };
 
 /**
+ * Type used for the one-off dyno configuration.
+ */
+export type OneOffDynoConfig = DeploymentOptions & {
+  command: string;
+  size?: string;
+  timeToLive?: number;
+} & {
+  name: string;
+  internalRouting?: never;
+};
+
+/**
  * The DeploymentError class is used when
  * an error occurs during the deployment of
  * an app.
@@ -193,11 +207,13 @@ export class DeployToHeroku extends AbortController {
 
   protected appSetupService = new AppSetupService('https://api.heroku.com');
   protected buildService = new BuildService('https://api.heroku.com');
+  protected dynoService = new DynoService('https://api.heroku.com');
+  protected configVarService = new ConfigVarService('https://api.heroku.com');
 
   protected requestInit: RequestInit | undefined;
 
   protected isExistingDeployment: boolean = false;
-  protected deploymentOptions!: DeploymentOptions;
+  protected deploymentOptions!: DeploymentOptions | OneOffDynoConfig;
 
   /**
    * Deploys the current workspace to Heroku by means
@@ -232,7 +248,7 @@ export class DeployToHeroku extends AbortController {
    *
    * @returns A promise that resolves when the deployment is complete or rejects if an error occurs during deployment
    */
-  public async run(deploymentOptions: DeploymentOptions = {}): Promise<DeploymentResult> {
+  public async run(deploymentOptions: DeploymentOptions | OneOffDynoConfig = {}): Promise<DeploymentResult> {
     this.deploymentOptions = deploymentOptions;
     this.requestInit = await generateRequestInit(this.signal);
     try {
@@ -315,15 +331,18 @@ export class DeployToHeroku extends AbortController {
       const tarball = await packSources(rootUri!, generatedAppJson);
       const { source_blob: sourceBlob } = await this.sourcesService.create(this.requestInit);
       blobUrl = sourceBlob!.get_url!;
+      try {
+        const response = await fetch(sourceBlob!.put_url!, {
+          method: 'PUT',
+          body: tarball
+        });
 
-      const response = await fetch(sourceBlob!.put_url!, {
-        method: 'PUT',
-        body: tarball
-      });
-
-      if (!response.ok) {
-        const uploadErrorMessage = `Error uploading tarball to S3 bucket. The server responded with: ${response.status} - ${response.statusText}`;
-        throw new Error(uploadErrorMessage);
+        if (!response.ok) {
+          const uploadErrorMessage = `Error uploading tarball to S3 bucket. The server responded with: ${response.status} - ${response.statusText}`;
+          throw new Error(uploadErrorMessage);
+        }
+      } catch (error) {
+        throw new DeploymentError((error as Error).message);
       }
     }
     // The user has right-clicked on a
@@ -348,6 +367,53 @@ export class DeployToHeroku extends AbortController {
       }
     }
     return result;
+  }
+
+  /**
+   * Deploys a one-off dyno to the app.
+   *
+   * @returns The dyno that was created.
+   * @throws {DeploymentError} If the deployment fails
+   */
+  protected async deployOneOffDyno(): Promise<Dyno> {
+    const { name, command, size, timeToLive, env } = this.deploymentOptions as OneOffDynoConfig;
+    try {
+      // Configure the app (env vars, source, etc.)
+      if (env) {
+        await this.configVarService.update(name, env);
+      }
+
+      // Create and start the one-off dyno
+      const dyno = await this.dynoService.create(name, {
+        command,
+        size: size ?? 'basic',
+        type: 'run',
+        // eslint-disable-next-line camelcase
+        time_to_live: timeToLive
+      });
+
+      // Wait for the dyno to start
+      await this.waitForDyno(app.name, dyno.id);
+
+      // Set up auto-stop if timeToLive is specified
+      if (config.timeToLive) {
+        setTimeout(async () => {
+          try {
+            await this.stopDyno(app.name, dyno.id);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to stop dyno:', error);
+          }
+        }, config.timeToLive * 1000);
+      }
+
+      return dyno;
+    } catch (error) {
+      if (error instanceof DeploymentError) {
+        throw error;
+      }
+      throw new Error(`One-off dyno deployment failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -506,6 +572,35 @@ export class DeployToHeroku extends AbortController {
     }
 
     return info;
+  }
+
+  /**
+   * Waits for the dyno to start.
+   *
+   * @param appName The name of the app
+   * @param dynoId The id of the dyno
+   * @returns The dyno
+   */
+  private async waitForDyno(appName: string, dynoId: string): Promise<Dyno> {
+    const maxAttempts = 60; // 5 minutes with 5-second intervals
+    let attempts = 0;
+
+    const checkDyno = async (): Promise<Dyno> => this.dynoService.info(appName, dynoId);
+
+    while (attempts < maxAttempts) {
+      const dyno = await checkDyno();
+
+      if (dyno.state === 'up') {
+        return dyno;
+      } else if (dyno.state === 'crashed' || dyno.state === 'down') {
+        throw new DeploymentError(`Dyno failed with state: ${dyno.state}`, dynoId);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      attempts++;
+    }
+
+    throw new DeploymentError('Dyno startup timed out', dynoId);
   }
 
   /**
