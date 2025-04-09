@@ -9,7 +9,7 @@ export type GeneratedContent = { relativePath: string; contents: Uint8Array };
  * Creates a compressed tarball (tar.gz) from the contents of a workspace folder.
  * The function respects git ignore rules and excludes node_modules directory.
  *
- * @param root - The workspace folder to create a tarball from
+ * @param root - The workspace folder to create a tarball from or undefined when only generated content should be included
  * @param additionalContents - Additional contents to include in the tarball
  * @returns A Promise that resolves to a Uint8Array containing the compressed tarball data
  *
@@ -26,8 +26,11 @@ export type GeneratedContent = { relativePath: string; contents: Uint8Array };
  *
  * @throws {Error} If unable to read workspace files or create the tarball
  */
-export async function packSources(root: string, additionalContents: GeneratedContent[] = []): Promise<Uint8Array> {
-  const files = await getSourceFilePaths(root);
+export async function packSources(
+  root: string | undefined,
+  additionalContents: GeneratedContent[] = []
+): Promise<Uint8Array> {
+  const files = root ? await getSourceFilePaths(root) : [];
 
   const pack = tar.pack();
   const gzip = zlib.createGzip();
@@ -40,7 +43,7 @@ export async function packSources(root: string, additionalContents: GeneratedCon
   for (const file of files) {
     try {
       const content = await readFile(file);
-      const relativePath = path.relative(root, file);
+      const relativePath = path.relative(root!, file);
       pack.entry({ name: relativePath }, Buffer.from(content));
     } catch {
       // Unreadable file or directory

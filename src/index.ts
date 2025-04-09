@@ -73,6 +73,7 @@ pipelines.registerPipelinesInfoTool(server, herokuRepl);
 
 // Deploy-to-Heroku tool
 deployToHeroku.registerDeployToHerokuTool(server);
+deployToHeroku.registerDeployOneOffDynoTool(server);
 
 /**
  * Run the server

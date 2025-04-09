@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { ValidatorResult } from 'jsonschema';
-import { AppSetup, Build } from '@heroku-cli/schema';
+import { AppSetup, Build, Dyno } from '@heroku-cli/schema';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
@@ -11,120 +11,18 @@ import AppSetupService, { AppSetupCreatePayload } from '../services/app-setup-se
 import BuildService, { type BuildCreatePayload } from '../services/build-service.js';
 import { generateRequestInit } from '../utils/generate-request-init.js';
 import { packSources } from '../utils/tarball.js';
+import DynoService from '../services/dyno-service.js';
+import { RendezvousConnection } from '../services/rendezvous.js';
 
 const appJsonSchema = await import('../utils/app-json.schema.json', { with: { type: 'json' } });
-/**
- * Schema for validating Heroku deployment parameters.
- * This schema enforces the structure and types of deployment options
- * including required fields and optional configurations.
- */
-export const deployToHerokuSchema = z
-  .object({
-    name: z
-      .string()
-      .min(5)
-      .max(30)
-      .describe(
-        'Heroku application name for deployment target. If omitted, a new app will be created with a random name. If supplied and the app does not exist, the tool will create a new app with the given name.'
-      ),
-    rootUri: z
-      .string()
-      .min(1)
-      .describe(
-        "The absolute path of the user's workspace unless otherwise specified by the user. Must be a string that can be resolved to a valid directory using node's path module."
-      ),
-    tarballUri: z
-      .string()
-      .optional()
-      .describe(
-        'The URL of the tarball to deploy. If not provided, the rootUri must be provided and the tool will create a new tarball from the contents of the rootUri.'
-      ),
-    teamId: z
-      .string()
-      .optional()
-      .describe(
-        'Heroku team identifier for team-scoped deployments. Use teams_list tool to get a list of teams if needed.'
-      ),
-    spaceId: z
-      .string()
-      .optional()
-      .describe(
-        'Heroku private space identifier for space-scoped deployments. Use spaces_list tool to get a list of spaces if needed.'
-      ),
-    internalRouting: z
-      .boolean()
-      .optional()
-      .describe(
-        'Enables internal routing within private spaces. Use this flag when you need to configure private spaces for internal routing.'
-      ),
-    env: z
-      .record(z.string(), z.any())
-      .optional()
-      .describe('Key-value pairs of environment variables for the deployment that override the ones in app.json'),
-    appJson: z.string().optional()
-      .describe(`Stringified app.json configuration for deployment. Used for dynamic configurations or converted projects.
-  The app.json string must be valid and conform to the following schema: ${JSON.stringify(appJsonSchema, null, 0)}`)
-  })
-  .strict();
-
-export type DeployToHerokuParams = z.infer<typeof deployToHerokuSchema>;
-
-/**
- * Registers the deploy_to_heroku tool with the MCP server.
- * This tool handles deployment of applications to Heroku using app.json configuration.
- * It supports team and private space deployments, environment variable configuration,
- * and custom app.json specifications.
- *
- * @param server - The MCP server instance to register the tool with
- */
-export const registerDeployToHerokuTool = (server: McpServer): void => {
-  server.tool(
-    'deploy_to_heroku',
-    'Deploy projects to Heroku, replaces manual git push workflows. Use this tool when you need to: ' +
-      '1) Deploy a new application with specific app.json configuration, 2) Update an existing application with new code, ' +
-      '3) Configure team or private space deployments, or 4) Set up environment-specific configurations. ' +
-      'The tool handles app creation, source code deployment, and environment setup. ' +
-      'Requires valid app.json in workspace or provided via configuration. ' +
-      'Supports team deployments, private spaces, and custom environment variables.' +
-      'Use apps_list tool with the "all" param to get a list of apps for the user to choose from when deploying to an existing app and the app name was not provided.',
-    deployToHerokuSchema.shape,
-    async (options: DeployToHerokuParams): Promise<McpToolResponse> => {
-      const deployToHeroku = new DeployToHeroku();
-      const result = await deployToHeroku.run({
-        rootUri: options.rootUri,
-        tarballUri: options.tarballUri,
-        name: options.name,
-        teamId: options.teamId,
-        spaceId: options.spaceId,
-        internalRouting: options.internalRouting,
-        env: options.env as EnvironmentVariables,
-        appJson: options.appJson ? new TextEncoder().encode(options.appJson) : undefined
-      });
-
-      if (result?.errorMessage) {
-        return {
-          success: false,
-          message: result.errorMessage,
-          content: [{ type: 'text', text: result.errorMessage }]
-        };
-      }
-
-      const successMessage = `Successfully deployed to ${result?.name ?? 'Heroku'}`;
-      return {
-        success: true,
-        message: successMessage,
-        content: [{ type: 'text', text: successMessage }],
-        data: result
-      };
-    }
-  );
-};
 
 /**
  * The only successful result is the Build & { name: string } type
+ * or a OneOffDynoResult for one-off dyno deployments
  */
 export type DeploymentResult =
   | (Build & { name: string; errorMessage?: string })
+  | OneOffDynoResult
   | { name?: string; errorMessage: string }
   | null;
 
@@ -140,6 +38,37 @@ export type DeploymentOptions = {
   internalRouting?: boolean;
   env?: EnvironmentVariables;
   appJson?: Uint8Array;
+};
+
+/**
+ * Type used for the one-off dyno configuration.
+ */
+export type OneOffDynoConfig = DeploymentOptions & {
+  command: string;
+  sources?: Array<{ relativePath: string; contents: string }>;
+  size?: string;
+  timeToLive?: number;
+} & {
+  name: string;
+  internalRouting?: never;
+  appJson?: never;
+};
+
+/**
+ * Type used for the one-off dyno result.
+ * Contains the dyno details, captured output, and execution status.
+ */
+export type OneOffDynoResult = {
+  /** The dyno object containing details about the created dyno */
+  dyno: Dyno;
+  /** The complete output captured from the dyno's execution */
+  output: string;
+  /** The exit code from the dyno execution. 0 indicates success, non-zero indicates failure */
+  exitCode: number;
+  /** The name of the app the dyno was created in */
+  name: string;
+  /** Optional error message if the dyno execution failed */
+  errorMessage?: string;
 };
 
 /**
@@ -193,11 +122,12 @@ export class DeployToHeroku extends AbortController {
 
   protected appSetupService = new AppSetupService('https://api.heroku.com');
   protected buildService = new BuildService('https://api.heroku.com');
+  protected dynoService = new DynoService('https://api.heroku.com');
 
   protected requestInit: RequestInit | undefined;
 
   protected isExistingDeployment: boolean = false;
-  protected deploymentOptions!: DeploymentOptions;
+  protected deploymentOptions!: DeploymentOptions | OneOffDynoConfig;
 
   /**
    * Deploys the current workspace to Heroku by means
@@ -232,7 +162,7 @@ export class DeployToHeroku extends AbortController {
    *
    * @returns A promise that resolves when the deployment is complete or rejects if an error occurs during deployment
    */
-  public async run(deploymentOptions: DeploymentOptions = {}): Promise<DeploymentResult> {
+  public async run(deploymentOptions: DeploymentOptions | OneOffDynoConfig = {}): Promise<DeploymentResult> {
     this.deploymentOptions = deploymentOptions;
     this.requestInit = await generateRequestInit(this.signal);
     try {
@@ -265,17 +195,31 @@ export class DeployToHeroku extends AbortController {
    * and returns it. The Promise returned from this function
    * is expected to be awaited on in a try...catch.
    *
-   * It performs the following tasks:
+   * For regular deployments, it performs:
    * 1. Validates the app.json configuration file
    * 2. Validates the Procfile
    * 3. Creates and deploys a new Heroku application
    * 4. Adds the new Heroku app to the git remote
    * 5. Displays a notification with options to view the app in the explorer
    *
+   * For one-off dynos, it:
+   * 1. Creates and configures the dyno
+   * 2. Waits for the dyno to start
+   * 3. Establishes a rendezvous connection to capture output
+   * 4. Monitors execution until completion
+   * 5. Handles automatic cleanup if timeToLive is specified
+   *
    * @returns The deployment process wrapped in a promise
    */
   protected runOperation = async (): Promise<DeploymentResult> => {
     const { tarballUri } = this.deploymentOptions;
+
+    // If command is present, this is a one-off dyno deployment
+    if ('command' in this.deploymentOptions) {
+      return this.deployOneOffDyno();
+    }
+
+    // Regular app deployment flow
     // app.json is required on an initial deployment using this flow
     if (!tarballUri && !this.isExistingDeployment) {
       await this.validateAppJson();
@@ -315,15 +259,18 @@ export class DeployToHeroku extends AbortController {
       const tarball = await packSources(rootUri!, generatedAppJson);
       const { source_blob: sourceBlob } = await this.sourcesService.create(this.requestInit);
       blobUrl = sourceBlob!.get_url!;
+      try {
+        const response = await fetch(sourceBlob!.put_url!, {
+          method: 'PUT',
+          body: tarball
+        });
 
-      const response = await fetch(sourceBlob!.put_url!, {
-        method: 'PUT',
-        body: tarball
-      });
-
-      if (!response.ok) {
-        const uploadErrorMessage = `Error uploading tarball to S3 bucket. The server responded with: ${response.status} - ${response.statusText}`;
-        throw new Error(uploadErrorMessage);
+        if (!response.ok) {
+          const uploadErrorMessage = `Error uploading tarball to S3 bucket. The server responded with: ${response.status} - ${response.statusText}`;
+          throw new Error(uploadErrorMessage);
+        }
+      } catch (error) {
+        throw new DeploymentError((error as Error).message);
       }
     }
     // The user has right-clicked on a
@@ -348,6 +295,100 @@ export class DeployToHeroku extends AbortController {
       }
     }
     return result;
+  }
+
+  /**
+   * Deploys a one-off dyno to the app and captures its output.
+   * This method:
+   * 1. Creates and configures the dyno with the specified settings
+   * 2. Waits for the dyno to start
+   * 3. Establishes a rendezvous connection to capture output
+   * 4. Monitors execution until completion
+   * 5. Handles automatic cleanup if timeToLive is specified
+   *
+   * @returns A promise resolving to an object containing:
+   *          - dyno: The Heroku dyno object
+   *          - output: The complete output from the dyno's execution
+   *          - exitCode: The process exit code (0 for success, non-zero for failure)
+   *          - name: The name of the app the dyno was created in
+   *          - errorMessage: Optional error message if execution failed
+   * @throws {DeploymentError} If the deployment fails, dyno crashes, or no attach URL is available
+   * @throws {Error} For general deployment failures with detailed error messages
+   */
+  protected async deployOneOffDyno(): Promise<OneOffDynoResult> {
+    const { name, command, size, timeToLive, env, sources } = this.deploymentOptions as OneOffDynoConfig;
+    try {
+      // If sources are provided, pack them and modify the command
+      let finalCommand = command;
+      if (sources?.length) {
+        const commands = [
+          'TEMP_DIR=$(mktemp -d)',
+          'cd $TEMP_DIR',
+          ...sources.map(
+            (source) => `printf '%s' '${source.contents.replace(/'/g, "'\\''")}' > ${source.relativePath}`
+          ),
+          command,
+          'cd - > /dev/null',
+          'rm -rf $TEMP_DIR'
+        ];
+        finalCommand = commands.join(' && ');
+      }
+
+      // Create and start the one-off dyno
+      const dyno = await this.dynoService.create(
+        name,
+        {
+          command: finalCommand,
+          size: size ?? 'basic',
+          type: 'run',
+          // eslint-disable-next-line camelcase
+          time_to_live: timeToLive,
+          attach: true,
+          env: env ?? {}
+        },
+        this.requestInit
+      );
+
+      // Connect to the dyno and capture output
+      const rendezvous = new RendezvousConnection({
+        uri: new URL(dyno.attach_url!),
+        rejectUnauthorized: true,
+        showStatus: true,
+        onStatusChange: (status: string): void => {
+          // eslint-disable-next-line no-console
+          console.log(`Dyno status: ${status}`);
+        }
+      });
+
+      // Capture the output and exit code
+      const { output, exitCode } = await rendezvous.connect();
+
+      // Set up auto-stop if timeToLive is specified
+      if (timeToLive) {
+        const timeoutFunc = async (): Promise<void> => {
+          try {
+            await this.dynoService.stop(name, dyno.id!, this.requestInit);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to stop dyno:', error);
+          }
+        };
+        setTimeout(() => void timeoutFunc(), timeToLive * 1000);
+      }
+
+      return {
+        dyno,
+        output,
+        exitCode,
+        name,
+        errorMessage: exitCode !== 0 ? `Dyno exited with code ${exitCode}` : undefined
+      };
+    } catch (error) {
+      if (error instanceof DeploymentError) {
+        throw error;
+      }
+      throw new Error(`One-off dyno deployment failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -528,3 +569,200 @@ export class DeployToHeroku extends AbortController {
     return output;
   }
 }
+
+/**
+ * Schema for validating Heroku deployment parameters.
+ * This schema enforces the structure and types of deployment options
+ * including required fields and optional configurations.
+ */
+export const deployToHerokuSchema = z
+  .object({
+    name: z
+      .string()
+      .min(5)
+      .max(30)
+      .describe(
+        'Heroku application name for deployment target. If omitted, a new app will be created with a random name. If supplied and the app does not exist, the tool will create a new app with the given name.'
+      ),
+    rootUri: z
+      .string()
+      .min(1)
+      .describe(
+        "The absolute path of the user's workspace unless otherwise specified by the user. Must be a string that can be resolved to a valid directory using node's path module."
+      ),
+    tarballUri: z
+      .string()
+      .optional()
+      .describe(
+        'The URL of the tarball to deploy. If not provided, the rootUri must be provided and the tool will create a new tarball from the contents of the rootUri.'
+      ),
+    teamId: z
+      .string()
+      .optional()
+      .describe(
+        'Heroku team identifier for team-scoped deployments. Use teams_list tool to get a list of teams if needed.'
+      ),
+    spaceId: z
+      .string()
+      .optional()
+      .describe(
+        'Heroku private space identifier for space-scoped deployments. Use spaces_list tool to get a list of spaces if needed.'
+      ),
+    internalRouting: z
+      .boolean()
+      .optional()
+      .describe(
+        'Enables internal routing within private spaces. Use this flag when you need to configure private spaces for internal routing.'
+      ),
+    env: z
+      .record(z.string(), z.any())
+      .optional()
+      .describe('Key-value pairs of environment variables for the deployment that override the ones in app.json'),
+    appJson: z.string().optional()
+      .describe(`Stringified app.json configuration for deployment. Used for dynamic configurations or converted projects.
+  The app.json string must be valid and conform to the following schema: ${JSON.stringify(appJsonSchema, null, 0)}`)
+  })
+  .strict();
+
+export type DeployToHerokuParams = z.infer<typeof deployToHerokuSchema>;
+
+/**
+ * Registers the deploy_to_heroku tool with the MCP server.
+ * This tool handles deployment of applications to Heroku using app.json configuration.
+ * It supports team and private space deployments, environment variable configuration,
+ * and custom app.json specifications.
+ *
+ * @param server - The MCP server instance to register the tool with
+ */
+export const registerDeployToHerokuTool = (server: McpServer): void => {
+  server.tool(
+    'deploy_to_heroku',
+    'Deploy projects to Heroku, replaces manual git push workflows. Use this tool when you need to: ' +
+      '1) Deploy a new application with specific app.json configuration, 2) Update an existing application with new code, ' +
+      '3) Configure team or private space deployments, or 4) Set up environment-specific configurations. ' +
+      'Important: Check for an app.json file first. If an app.json does not exist in the workspace, you must create one and pass it in via the appJson parameter. ' +
+      'The tool handles app creation, source code deployment, and environment setup. ' +
+      'Requires valid app.json in workspace or provided via configuration. ' +
+      'Supports team deployments, private spaces, and custom environment variables.' +
+      'Use apps_list tool with the "all" param to get a list of apps for the user to choose from when deploying to an existing app and the app name was not provided.',
+    deployToHerokuSchema.shape,
+    async (options: DeployToHerokuParams): Promise<McpToolResponse> => {
+      const deployToHeroku = new DeployToHeroku();
+      const result = await deployToHeroku.run({
+        rootUri: options.rootUri,
+        tarballUri: options.tarballUri,
+        name: options.name,
+        teamId: options.teamId,
+        spaceId: options.spaceId,
+        internalRouting: options.internalRouting,
+        env: options.env as EnvironmentVariables,
+        appJson: options.appJson ? new TextEncoder().encode(options.appJson) : undefined
+      });
+
+      if (result?.errorMessage) {
+        return {
+          success: false,
+          message: result.errorMessage,
+          content: [{ type: 'text', text: result.errorMessage }]
+        };
+      }
+
+      const successMessage = `Successfully deployed to ${result?.name ?? 'Heroku'}`;
+      return {
+        success: true,
+        message: successMessage,
+        content: [{ type: 'text', text: successMessage }],
+        data: result
+      };
+    }
+  );
+};
+
+// Define the schema for deploying to a one-off dyno
+export const deployOneOffDynoSchema = z
+  .object({
+    name: z.string().min(5).max(30).describe('Name of the Heroku app for the one-off dyno.'),
+    command: z.string().describe('Command to execute in the one-off dyno.'),
+    sources: z
+      .array(
+        z.object({
+          relativePath: z
+            .string()
+            .describe('A virtual path to the source file used to create the tarball entry for this file.'),
+          contents: z.string().describe('Contents of the source file represented as a string.')
+        })
+      )
+      .optional()
+      .describe('Array of objects representing the source files to include in the dyno.'),
+    size: z.string().optional().describe('Dyno size (optional).').default('standard-1x'),
+    timeToLive: z.number().optional().describe('Dyno lifespan in seconds (optional).').default(3600),
+    env: z.record(z.string(), z.any()).optional().describe('Environment variables for the dyno (optional).')
+  })
+  .strict();
+
+export const execToolSchemaDescription = `
+Execute code or a command on a Heroku one-off dyno in a sandboxed environment with network and filesystem access.
+
+**Requirements:**
+- Display command output to the user.
+- Determine app language using the 'app_info' tool to identify the Heroku buildpack.
+- Use shell commands for environment setup (e.g., package installations) before execution.
+- Output must utilize standard input/output.
+
+**Capabilities:**
+- Network and filesystem access
+- Environment variables support
+- File creation and execution in supported languages
+- Temporary directory management
+
+**Guidelines:**
+1. Use the appropriate Heroku-supported language runtime.
+2. Ensure correct syntax and module imports for the chosen language.
+3. Organize code into classes/functions, executed from the top level.
+4. For external packages:
+   - Specify in the appropriate package manager file.
+   - Minimize dependencies.
+   - Prefer native modules when possible.
+
+**Example (Node.js package manager file):**
+\`\`\`json
+{
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
+\`\`\`
+`;
+/**
+ * Registers the deploy_one_off_dyno tool with the MCP server.
+ * This tool handles deployment of one-off dynos to Heroku using the specified command and configuration.
+ *
+ * @param server - The MCP server instance to register the tool with
+ */
+export const registerDeployOneOffDynoTool = (server: McpServer): void => {
+  server.tool(
+    'deploy_one_off_dyno',
+    execToolSchemaDescription,
+    deployOneOffDynoSchema.shape,
+    async (options: OneOffDynoConfig): Promise<McpToolResponse> => {
+      const deployToHeroku = new DeployToHeroku();
+      const result = (await deployToHeroku.run(options)) as OneOffDynoResult;
+
+      if (result?.errorMessage) {
+        return {
+          success: false,
+          message: result.errorMessage,
+          content: [{ type: 'text', text: result.errorMessage }]
+        };
+      }
+
+      return {
+        success: true,
+        message: result.output ?? 'Successfully deployed one-off dyno to Heroku',
+        content: [{ type: 'text', text: result.output }],
+        data: result
+      };
+    }
+  );
+};

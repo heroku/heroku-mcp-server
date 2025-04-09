@@ -25,7 +25,6 @@
       "type": "node",
       "request": "attach",
       "name": "Attach to Debug Hook Process",
-      "port": 9332,
       "skipFiles": ["<node_internals>/**"],
       "sourceMaps": true,
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
@@ -34,7 +33,6 @@
       "type": "node",
       "request": "attach",
       "name": "Attach to REPL Process",
-      "port": 9333,
       "skipFiles": ["<node_internals>/**"],
       "sourceMaps": true,
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
