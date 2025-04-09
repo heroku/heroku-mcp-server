@@ -344,7 +344,9 @@ export class DeployToHeroku extends AbortController {
           // eslint-disable-next-line camelcase
           time_to_live: timeToLive,
           attach: true,
-          env: env ?? {}
+          env: env ?? {},
+          // eslint-disable-next-line camelcase
+          force_no_tty: true
         },
         this.requestInit
       );
@@ -618,7 +620,7 @@ export const deployToHerokuSchema = z
       .record(z.string(), z.any())
       .optional()
       .describe('Key-value pairs of environment variables for the deployment that override the ones in app.json'),
-    appJson: z.string().optional()
+    appJson: z.string()
       .describe(`Stringified app.json configuration for deployment. Used for dynamic configurations or converted projects.
   The app.json string must be valid and conform to the following schema: ${JSON.stringify(appJsonSchema, null, 0)}`)
   })

@@ -11,6 +11,9 @@ import BuildService from '../services/build-service.js';
 import sinon from 'sinon';
 import { Build } from '@heroku-cli/schema';
 import { AppSetup } from '@heroku-cli/schema';
+import { OneOffDynoConfig } from './deploy-to-heroku.js';
+import { RendezvousConnection } from '../services/rendezvous.js';
+import DynoService from '../services/dyno-service.js';
 
 describe('DeployToHeroku', () => {
   // Increase timeout for async tests
@@ -26,6 +29,7 @@ describe('DeployToHeroku', () => {
   let appSetupServiceStub: sinon.SinonStubbedInstance<AppSetupService>;
   let buildServiceStub: sinon.SinonStubbedInstance<BuildService>;
   let fetchStub: typeof fetch & sinon.SinonStub;
+  let dynoServiceStub: sinon.SinonStubbedInstance<DynoService>;
 
   beforeEach(async () => {
     // Create a temporary directory for each test
@@ -36,6 +40,7 @@ describe('DeployToHeroku', () => {
     sourceServiceStub = sinon.createStubInstance(SourceService);
     appSetupServiceStub = sinon.createStubInstance(AppSetupService);
     buildServiceStub = sinon.createStubInstance(BuildService);
+    dynoServiceStub = sinon.createStubInstance(DynoService);
 
     const readable = Readable.from(
       (async function* () {
@@ -59,7 +64,8 @@ describe('DeployToHeroku', () => {
       appService: appServiceStub,
       sourcesService: sourceServiceStub,
       appSetupService: appSetupServiceStub,
-      buildService: buildServiceStub
+      buildService: buildServiceStub,
+      dynoService: dynoServiceStub
     });
   });
 
@@ -201,6 +207,51 @@ describe('DeployToHeroku', () => {
         expect(result.errorMessage).to.include('Error 1');
         expect(result.errorMessage).to.include('Error 2');
       }
+    });
+
+    it('should deploy a one-off dyno and capture output', async function () {
+      this.timeout(TEST_TIMEOUT);
+      // Create test app.json
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+
+      const mockDyno = {
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo "Hello, World!"'
+      };
+
+      const mockDynoResult = {
+        dyno: mockDyno,
+        output: 'Hello, World!',
+        exitCode: 0,
+        name: 'test-app'
+      };
+
+      dynoServiceStub.create.resolves(mockDyno);
+      const rendezvousStub = sinon.stub(RendezvousConnection.prototype, 'connect').resolves({
+        output: 'Hello, World!',
+        exitCode: 0
+      });
+
+      const options: OneOffDynoConfig = {
+        name: 'test-app',
+        command: 'echo "Hello, World!"',
+        rootUri: tempDir
+      };
+
+      const result = await deployToHeroku.run(options);
+      expect(result).to.not.be.null;
+      expect(result).to.have.property('output', 'Hello, World!');
+      expect(result).to.have.property('exitCode', 0);
+      expect(dynoServiceStub.create.calledOnce).to.be.true;
+      expect(rendezvousStub.calledOnce).to.be.true;
     });
   });
 });
