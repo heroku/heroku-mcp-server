@@ -1,10 +1,10 @@
 # heroku-mcp-server
 
+> The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
+
 ## Overview
 
-The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate
-seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set
-of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.
+The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.
 
 Key Features:
 
@@ -17,7 +17,7 @@ the future of this project.
 
 ## Install the Heroku Platform MCP Server
 
-Install the Heroku Platform MCP Server globally using npm:
+Install the Heroku Platform MCP Server globally using`npm`:
 
 ```sh
 npm i -g @heroku/mcp-server
@@ -38,7 +38,10 @@ Generate a Heroku authorization token with one of these methods:
   ```
   Copy the token and use it as your `HEROKU_API_KEY` in the following steps.
 
-- In your [Heroku Dashboard](https://dashboard.heroku.com/account/applications), select your avatar then select **Account Settings**. Open the Applications tab, then next to **Authorizations** click **Create authorization**.
+- In your [Heroku Dashboard](https://dashboard.heroku.com/account/applications):
+  1. Select your avatar, then select **Account Settings**.
+  2. Open the Applications tab.
+  3. Next to **Authorizations**, click **Create authorization**.
 
 ## Configure the Heroku Platform MCP Server
 
@@ -119,9 +122,9 @@ Add this snippet to your Windsurf `mcp_config.json`:
 
 ### Application Management
 
-- `list_apps` - List all Heroku apps. You can filter apps by owned, collaborator, team, and private spaces.
+- `list_apps` - List all Heroku apps. You can filter apps by personal, collaborator, team, or space.
 - `get_app_info` - Get detailed information about an app, including its configuration, dynos, and add-ons.
-- `create_app` - Create a new app with customizable settings for region, team, and private spaces.
+- `create_app` - Create a new app with customizable settings for region, team, and space.
 - `rename_app` - Rename an existing app.
 - `transfer_app` - Transfer ownership of an app to another user or team.
 - `deploy_to_heroku` - Deploy projects to Heroku with an `app.json` configuration, supporting team deployments, private spaces, and environment setups.
@@ -154,7 +157,7 @@ Add this snippet to your Windsurf `mcp_config.json`:
 ### Team & Space Management
 
 - `list_teams` - List teams you belong to.
-- `list_private_spaces` - List available private spaces.
+- `list_private_spaces` - List available spaces.
 
 ### PostgreSQL Database Management
 
@@ -185,7 +188,7 @@ Use the MCP inspector with no breakpoints in the code:
 npx @modelcontextprotocol/inspector heroku-mcp-server
 ```
 
-Alternatively, if you've installed the package in a specific directory or are actively developing on the Heroku MCP server:
+Alternatively, if you installed the package in a specific directory or are actively developing on the Heroku MCP server:
 
 ```
 cd /path/to/servers
@@ -197,7 +200,7 @@ npx @modelcontextprotocol/inspector dist/index.js
 Use the VS Code [Run and Debug launcher](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) with fully functional breakpoints in the code:
 
 1. Locate and select the run debug.
-2. Select the configuration labeled "MCP Server Launcher" in the dropdown.
+2. Select the configuration labeled "`MCP Server Launcher`" in the dropdown.
 3. Select the run/debug button.
 
 ### VS Code / Cursor Debugging Setup
@@ -288,6 +291,6 @@ To set up local debugging with breakpoints:
 
 4. (Optional) Set breakpoints in your TypeScript files.
 
-5. Press F5 or use the Run and Debug sidebar.
+5. Press F5 or use the **`Run and Debug`** sidebar.
 
-Note: the debugger will automatically build your TypeScript files before launching.
+Note: the debugger automatically builds your TypeScript files before launching.
