@@ -3,20 +3,19 @@
 ## Overview
 
 The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate
-seamless interaction between Large Language Models and the Heroku Platform. This server aims at providing a robust set
+seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set
 of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.
 
 Key Features:
 
 - Direct interaction with Heroku Platform resources through LLM-driven tools
-- Secure and authenticated access to Heroku Platform APIs, leveraging Heroku CLI
+- Secure and authenticated access to Heroku Platform APIs, leveraging the Heroku CLI
 - Natural language interface for Heroku Platform interactions
 
-Note: The Heroku Platform MCP Server is currently in early development. As we continue to enhance and refine the
-implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
+Note: The Heroku Platform MCP Server is currently in early development. As we continue to enhance and refine the implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
 
-## Installation
+## Install the Heroku Platform MCP Server
 
 Install the Heroku Platform MCP Server globally using npm:
 
@@ -24,26 +23,30 @@ Install the Heroku Platform MCP Server globally using npm:
 npm i -g @heroku/mcp-server
 ```
 
-## Configuration
+## Authentication
 
-### Authentication Setup
+Generate a Heroku authorization token with one of these methods:
 
-Generate a Heroku authorization token using one of these methods:
-
-- Through your Heroku Dashboard account profile
-- Using the Heroku CLI command:
+- Use the Heroku CLI command:
   ```sh
     heroku authorizations:create
   ```
-- Using an existing token in the CLI
+
+- Use an existing token in the CLI
   ```sh
     heroku auth:token
   ```
   Copy the token and use it as your `HEROKU_API_KEY` in the following steps.
 
-### Usage with [Claude Desktop](https://claude.ai/download)
+- In your [Heroku Dashboard](https://dashboard.heroku.com/account/applications), select your avatar then select **Account Settings**. Open the Applications tab, then next to **Authorizations** click **Create authorization**.
 
-Add this to your `claude_desktop_config.json`:
+## Configure the Heroku Platform MCP Server
+
+You can configure Claude Desktop, Zed, Cursor, and Windsurf to work with the Heroku Platform MCP Server.
+
+### [Claude Desktop](https://claude.ai/download)
+
+Add this snippet to your `claude_desktop_config.json`:
 
 ```json
 "mcpServers": {
@@ -56,9 +59,9 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-### Usage with [Zed](https://github.com/zed-industries/zed)
+### [Zed](https://github.com/zed-industries/zed)
 
-Add this to your Zed settings.json:
+Add this snippet to your Zed settings.json:
 
 ```json
 "context_servers": [
@@ -73,9 +76,9 @@ Add this to your Zed settings.json:
 ],
 ```
 
-### Usage with [Cursor](https://www.cursor.com/)
+### [Cursor](https://www.cursor.com/)
 
-Add this to your Cursor mcp.json:
+Add this snippet to your Cursor mcp.json:
 
 ```json
 "mcpServers": {
@@ -88,9 +91,9 @@ Add this to your Cursor mcp.json:
 }
 ```
 
-### Usage with [Windsurf](https://www.windsurf.com/)
+### [Windsurf](https://www.windsurf.com/)
 
-Add this to your Windsurf mcp_config.json:
+Add this snippet to your Windsurf mcp_config.json:
 
 ```json
 "mcpServers": {
@@ -107,79 +110,82 @@ Add this to your Windsurf mcp_config.json:
 
 ### Application Management
 
-- `list_apps` - List Heroku applications with filtering options for owned apps, collaborator apps, team apps, and
-  private space apps
-- `get_app_info` - Get detailed information about an app including configuration, dynos, add-ons, and more
-- `create_app` - Create a new Heroku application with customizable settings for region, team, and private space
-- `rename_app` - Rename an existing Heroku application
-- `transfer_app` - Transfer app ownership to another user or team
-- `deploy_to_heroku` - Deploy projects to Heroku with app.json configuration, supporting team deployments, private
-  spaces, and environment setup
+- `list_apps` - List all Heroku apps. You can filter apps by owned, collaborator, team, and private spaces.
+- `get_app_info` - Get detailed information about an app, including its configuration, dynos, and add-ons.
+- `create_app` - Create a new app with customizable settings for region, team, and private spaces.
+- `rename_app` - Rename an existing app.
+- `transfer_app` - Transfer ownership of an app to another user or team.
+- `deploy_to_heroku` - Deploy projects to Heroku with an app.json configuration, supporting team deployments, private spaces, and environment setups.
 
 ### Process & Dyno Management
 
-- `ps_list` - List all dynos for an app
-- `ps_scale` - Scale dyno quantity up/down or resize dynos
-- `ps_restart` - Restart specific dynos, process types, or all dynos
+- `ps_list` - List all dynos for an app.
+- `ps_scale` - Scale the number of dynos up or down, or resize dynos.
+- `ps_restart` - Restart specific dynos, process types, or all dynos.
 
 ### Add-ons
 
-- `list_addons` - List all add-ons across apps or for a specific app
-- `get_addon_info` - Get detailed information about a specific add-on
-- `create_addon` - Provision a new add-on for an app
+- `list_addons` - List all add-ons for all apps or for a specific app.
+- `get_addon_info` - Get detailed information about a specific add-on.
+- `create_addon` - Provision a new add-on for an app.
 
 ### Maintenance & Logs
 
-- `maintenance_on` - Enable maintenance mode for an app
-- `maintenance_off` - Disable maintenance mode
-- `get_app_logs` - View application logs with filtering options
+- `maintenance_on` - Enable maintenance mode for an app.
+- `maintenance_off` - Disable maintenance mode for an app.
+- `get_app_logs` - View application logs.
 
 ### Pipeline Management
 
-- `pipelines_create` - Create a new pipeline
-- `pipelines_promote` - Promote apps to the next stage in a pipeline
-- `pipelines_list` - List available pipelines
-- `pipelines_info` - Get detailed pipeline information
+- `pipelines_create` - Create a new pipeline.
+- `pipelines_promote` - Promote apps to the next stage in a pipeline.
+- `pipelines_list` - List available pipelines.
+- `pipelines_info` - Get detailed pipeline information.
 
 ### Team & Space Management
 
-- `list_teams` - List teams you belong to
-- `list_private_spaces` - List available private spaces
+- `list_teams` - List teams you belong to.
+- `list_private_spaces` - List available private spaces.
 
 ### PostgreSQL Database Management
 
-- `pg_psql` - Execute SQL queries against Heroku PostgreSQL database
-- `pg_info` - Display detailed database information
-- `pg_ps` - View active queries and execution details
-- `pg_locks` - View database locks and identify blocking transactions
-- `pg_outliers` - Identify resource-intensive queries
-- `pg_credentials` - Manage database credentials and access
-- `pg_kill` - Terminate specific database processes
-- `pg_maintenance` - Show database maintenance information
-- `pg_backups` - Manage database backups and schedules
-- `pg_upgrade` - Upgrade PostgreSQL to a newer version
+- `pg_psql` - Execute SQL queries against the Heroku PostgreSQL database.
+- `pg_info` - Display detailed database information.
+- `pg_ps` - View active queries and execution details.
+- `pg_locks` - View database locks and identify blocking transactions.
+- `pg_outliers` - Identify resource-intensive queries.
+- `pg_credentials` - Manage database credentials and access.
+- `pg_kill` - Terminate specific database processes.
+- `pg_maintenance` - Show database maintenance information.
+- `pg_backups` - Manage database backups and schedules.
+- `pg_upgrade` - Upgrade PostgreSQL to a newer version.
 
 ## Debugging
 
-You can use the MCP inspector or the vscode run/debug to run and debug the server.
+You can use the [MCP inspector](https://modelcontextprotocol.io/docs/tools/inspector) or the [VS Code Run and Debug function](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) to run and debug the server.
 
-1. link the project as a global CLI using `npm link` from the project root
-2. build using `npm run build:dev`, or;
-3. to watch for file changes and build automatically use `npm run build:watch`
+1. Link the project as a global CLI using `npm link` from the project root.
+2. Build with `npm run build:dev` or watch for file changes and build automatically with `npm run build:watch`.
 
-Option 1 - use the @modelcontextprotocol/inspector (no breakpoints in code):
+### Use the MCP Inspector
+
+Use the MCP inspector with no breakpoints in the code:
 
 ```
 # Breakpoints are not available
 npx @modelcontextprotocol/inspector heroku-mcp-server
 ```
 
-Option 2 - use the VSCode run/debug launcher (fully functional breakpoints in code):
+### Use the VS Code Run and Debug Function
 
-1. Locate and click on the run debug
-2. select the configuration labeled "MCP Server Launcher" in the dropdown
-3. click on the green run/debug button
+Use the VS Code [Run and Debug launcher](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) with fully functional breakpoints in the code:
 
+1. Locate and select the run debug.
+2. Select the configuration labeled "MCP Server Launcher" in the dropdown.
+3. Select the run/debug button.
+
+
+HERE
 Or if you've installed the package in a specific directory or are developing on it:
 
 ```
@@ -187,15 +193,17 @@ cd path/to/servers/src/git
 npx @modelcontextprotocol/inspector dist/index.js
 ```
 
+HERE
+
 ### VS Code / Cursor Debugging Setup
 
-To setup local debugging with breakpoints:
+To set up local debugging with breakpoints:
 
-1. Store your Heroku auth token in VS Code user settings:
+1. Store your Heroku auth token in the VS Code user settings:
 
-   - Open Command Palette (Cmd/Ctrl + Shift + P)
-   - Type "Preferences: Open User Settings (JSON)"
-   - Add the following:
+   - Open the Command Palette (Cmd/Ctrl + Shift + P).
+   - Type `Preferences: Open User Settings (JSON)`.
+   - Add the following snippet:
 
    ```json
    {
@@ -273,7 +281,7 @@ To setup local debugging with breakpoints:
    }
    ```
 
-4. To debug:
-   - Set breakpoints in your TypeScript files
-   - Press F5 or use the Run and Debug sidebar
-   - The debugger will automatically build your TypeScript files before launching
+4. To start debugging:
+   - Set breakpoints in your TypeScript files.
+   - Press F5 or use the Run and Debug sidebar.
+   - Note the debugger will automatically build your TypeScript files before launching.
