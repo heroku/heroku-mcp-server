@@ -63,7 +63,7 @@ Add this snippet to your `claude_desktop_config.json`:
 
 ### [Zed](https://github.com/zed-industries/zed)
 
-Add this snippet to your Zed settings.json:
+Add this snippet to your Zed `settings.json`:
 
 ```json
 {
@@ -83,7 +83,7 @@ Add this snippet to your Zed settings.json:
 
 ### [Cursor](https://www.cursor.com/)
 
-Add this snippet to your Cursor mcp.json:
+Add this snippet to your Cursor `mcp.json`:
 
 ```json
 {
@@ -100,7 +100,7 @@ Add this snippet to your Cursor mcp.json:
 
 ### [Windsurf](https://www.windsurf.com/)
 
-Add this snippet to your Windsurf mcp_config.json:
+Add this snippet to your Windsurf `mcp_config.json`:
 
 ```json
 {
