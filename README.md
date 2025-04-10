@@ -185,6 +185,13 @@ Use the MCP inspector with no breakpoints in the code:
 npx @modelcontextprotocol/inspector heroku-mcp-server
 ```
 
+Alternatively, if you've installed the package in a specific directory or are actively developing on the Heroku MCP server:
+
+```
+cd /path/to/servers
+npx @modelcontextprotocol/inspector dist/index.js
+```
+
 ### Use the VS Code Run and Debug Function
 
 Use the VS Code [Run and Debug launcher](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) with fully functional breakpoints in the code:
@@ -192,17 +199,6 @@ Use the VS Code [Run and Debug launcher](https://code.visualstudio.com/docs/debu
 1. Locate and select the run debug.
 2. Select the configuration labeled "MCP Server Launcher" in the dropdown.
 3. Select the run/debug button.
-
-
-HERE
-Or if you've installed the package in a specific directory or are developing on it:
-
-```
-cd path/to/servers/src/git
-npx @modelcontextprotocol/inspector dist/index.js
-```
-
-HERE
 
 ### VS Code / Cursor Debugging Setup
 
