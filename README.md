@@ -124,7 +124,7 @@ Add this snippet to your Windsurf `mcp_config.json`:
 - `create_app` - Create a new app with customizable settings for region, team, and private spaces.
 - `rename_app` - Rename an existing app.
 - `transfer_app` - Transfer ownership of an app to another user or team.
-- `deploy_to_heroku` - Deploy projects to Heroku with an app.json configuration, supporting team deployments, private spaces, and environment setups.
+- `deploy_to_heroku` - Deploy projects to Heroku with an `app.json` configuration, supporting team deployments, private spaces, and environment setups.
 
 ### Process & Dyno Management
 
@@ -286,7 +286,8 @@ To set up local debugging with breakpoints:
    }
    ```
 
-4. To start debugging:
-   - Set breakpoints in your TypeScript files.
-   - Press F5 or use the Run and Debug sidebar.
-   - Note the debugger will automatically build your TypeScript files before launching.
+4. (Optional) Set breakpoints in your TypeScript files.
+
+5. Press F5 or use the Run and Debug sidebar.
+
+Note: the debugger will automatically build your TypeScript files before launching.
