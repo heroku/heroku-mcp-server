@@ -4,7 +4,9 @@
 
 ## Overview
 
-The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.
+The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate
+seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of
+tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.
 
 Key Features:
 
@@ -12,7 +14,8 @@ Key Features:
 - Secure and authenticated access to Heroku Platform APIs, leveraging the Heroku CLI
 - Natural language interface for Heroku Platform interactions
 
-Note: The Heroku Platform MCP Server is currently in early development. As we continue to enhance and refine the implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
+Note: The Heroku Platform MCP Server is currently in early development. As we continue to enhance and refine the
+implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
 
 ## Install the Heroku Platform MCP Server
@@ -28,14 +31,17 @@ npm i -g @heroku/mcp-server
 Generate a Heroku authorization token with one of these methods:
 
 - Use the Heroku CLI command:
+
   ```sh
     heroku authorizations:create
   ```
 
 - Use an existing token in the CLI
+
   ```sh
     heroku auth:token
   ```
+
   Copy the token and use it as your `HEROKU_API_KEY` in the following steps.
 
 - In your [Heroku Dashboard](https://dashboard.heroku.com/account/applications):
@@ -127,7 +133,8 @@ Add this snippet to your Windsurf `mcp_config.json`:
 - `create_app` - Create a new app with customizable settings for region, team, and space.
 - `rename_app` - Rename an existing app.
 - `transfer_app` - Transfer ownership of an app to another user or team.
-- `deploy_to_heroku` - Deploy projects to Heroku with an `app.json` configuration, supporting team deployments, private spaces, and environment setups.
+- `deploy_to_heroku` - Deploy projects to Heroku with an `app.json` configuration, supporting team deployments, private
+  spaces, and environment setups.
 
 ### Process & Dyno Management
 
@@ -174,7 +181,9 @@ Add this snippet to your Windsurf `mcp_config.json`:
 
 ## Debugging
 
-You can use the [MCP inspector](https://modelcontextprotocol.io/docs/tools/inspector) or the [VS Code Run and Debug function](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) to run and debug the server.
+You can use the [MCP inspector](https://modelcontextprotocol.io/docs/tools/inspector) or the
+[VS Code Run and Debug function](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) to
+run and debug the server.
 
 1. Link the project as a global CLI using `npm link` from the project root.
 2. Build with `npm run build:dev` or watch for file changes and build automatically with `npm run build:watch`.
@@ -197,7 +206,9 @@ npx @modelcontextprotocol/inspector dist/index.js
 
 ### Use the VS Code Run and Debug Function
 
-Use the VS Code [Run and Debug launcher](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) with fully functional breakpoints in the code:
+Use the VS Code
+[Run and Debug launcher](https://code.visualstudio.com/docs/debugtest/debugging#_start-a-debugging-session) with fully
+functional breakpoints in the code:
 
 1. Locate and select the run debug.
 2. Select the configuration labeled "`MCP Server Launcher`" in the dropdown.
