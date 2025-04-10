@@ -49,11 +49,13 @@ You can configure Claude Desktop, Zed, Cursor, and Windsurf to work with the Her
 Add this snippet to your `claude_desktop_config.json`:
 
 ```json
-"mcpServers": {
-  "heroku": {
-    "command": "heroku-mcp-server",
-    "env": {
-      "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "npx -y @heroku/mcp-server",
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
     }
   }
 }
@@ -64,16 +66,19 @@ Add this snippet to your `claude_desktop_config.json`:
 Add this snippet to your Zed settings.json:
 
 ```json
-"context_servers": [
-  "heroku-mcp-server": {
-    "command": {
-      "path": "heroku-mcp-server",
-      "env": {
-        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+{
+  "context_servers": {
+    "heroku": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"],
+        "env": {
+          "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+        }
       }
     }
   }
-],
+}
 ```
 
 ### [Cursor](https://www.cursor.com/)
@@ -81,13 +86,15 @@ Add this snippet to your Zed settings.json:
 Add this snippet to your Cursor mcp.json:
 
 ```json
-"mcpServers": {
-  "heroku": {
-    "command": "heroku-mcp-server",
-    "env": {
-      "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "npx -y @heroku/mcp-server",
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
     }
-  },
+  }
 }
 ```
 
@@ -96,13 +103,15 @@ Add this snippet to your Cursor mcp.json:
 Add this snippet to your Windsurf mcp_config.json:
 
 ```json
-"mcpServers": {
-  "heroku": {
-    "command": "heroku-mcp-server",
-    "env": {
-      "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "npx -y @heroku/mcp-server",
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
     }
-  },
+  }
 }
 ```
 
