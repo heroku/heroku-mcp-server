@@ -18,14 +18,6 @@ Note: The Heroku Platform MCP Server is currently in early development. As we co
 implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
 
-## Install the Heroku Platform MCP Server
-
-Install the Heroku Platform MCP Server globally using`npm`:
-
-```sh
-npm i -g @heroku/mcp-server
-```
-
 ## Authentication
 
 Generate a Heroku authorization token with one of these methods:
@@ -135,6 +127,9 @@ Add this snippet to your Windsurf `mcp_config.json`:
 - `transfer_app` - Transfer ownership of an app to another user or team.
 - `deploy_to_heroku` - Deploy projects to Heroku with an `app.json` configuration, supporting team deployments, private
   spaces, and environment setups.
+- `deploy_one_off_dyno` - Execute code or commands in a sandboxed environment on a Heroku one-off dyno. Supports file
+  creation, network access, environment variables, and automatic cleanup. Ideal for running scripts, tests, or temporary
+  workloads.
 
 ### Process & Dyno Management
 
