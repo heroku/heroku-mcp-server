@@ -12,14 +12,7 @@ import { McpToolResponse } from '../utils/mcp-tool-response.js';
  * This schema defines the structure and validation rules for the list private spaces operation.
  */
 export const listPrivateSpacesOptionsSchema = z.object({
-  json: z
-    .boolean()
-    .optional()
-    .describe(
-      'Controls the output format. When true, returns a detailed JSON response containing private space metadata ' +
-        "such as generation's unsupported features, IPv4 and IPv6 CIDR blocks. When false or omitted, returns a " +
-        'simplified text format.'
-    )
+  json: z.boolean().optional().describe('JSON output for detailed space metadata, text output if false/omitted')
 });
 
 /**
@@ -39,10 +32,7 @@ export type ListPrivateSpacesOptions = z.infer<typeof listPrivateSpacesOptionsSc
 export const registerListPrivateSpacesTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'list_private_spaces',
-    'List Heroku Private Spaces available to the user. Use this tool when you need to: ' +
-      '1) View all private spaces, 2) Get space details like CIDR blocks and regions, ' +
-      '3) Check space compliance features, or 4) View space capacity information. ' +
-      'Supports JSON output for detailed metadata. Essential for enterprise space management.',
+    'Lists Heroku Private Spaces with CIDR blocks, regions, compliance and capacity details. JSON output supported.',
     listPrivateSpacesOptionsSchema.shape,
     async (options: ListPrivateSpacesOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_PRIVATE_SPACES).addFlags({ json: options.json }).build();

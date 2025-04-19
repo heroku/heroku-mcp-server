@@ -579,50 +579,16 @@ export class DeployToHeroku extends AbortController {
  */
 export const deployToHerokuSchema = z
   .object({
-    name: z
+    name: z.string().min(5).max(30).describe('App name for deployment. Creates new app if not exists.'),
+    rootUri: z.string().min(1).describe('Workspace root directory path.'),
+    tarballUri: z.string().optional().describe('URL of deployment tarball. Creates from rootUri if not provided.'),
+    teamId: z.string().optional().describe('Team ID for team deployments.'),
+    spaceId: z.string().optional().describe('Private space ID for space deployments.'),
+    internalRouting: z.boolean().optional().describe('Enable internal routing in private spaces.'),
+    env: z.record(z.string(), z.any()).optional().describe('Environment variables overriding app.json values'),
+    appJson: z
       .string()
-      .min(5)
-      .max(30)
-      .describe(
-        'Heroku application name for deployment target. If omitted, a new app will be created with a random name. If supplied and the app does not exist, the tool will create a new app with the given name.'
-      ),
-    rootUri: z
-      .string()
-      .min(1)
-      .describe(
-        "The absolute path of the user's workspace unless otherwise specified by the user. Must be a string that can be resolved to a valid directory using node's path module."
-      ),
-    tarballUri: z
-      .string()
-      .optional()
-      .describe(
-        'The URL of the tarball to deploy. If not provided, the rootUri must be provided and the tool will create a new tarball from the contents of the rootUri.'
-      ),
-    teamId: z
-      .string()
-      .optional()
-      .describe(
-        'Heroku team identifier for team-scoped deployments. Use teams_list tool to get a list of teams if needed.'
-      ),
-    spaceId: z
-      .string()
-      .optional()
-      .describe(
-        'Heroku private space identifier for space-scoped deployments. Use spaces_list tool to get a list of spaces if needed.'
-      ),
-    internalRouting: z
-      .boolean()
-      .optional()
-      .describe(
-        'Enables internal routing within private spaces. Use this flag when you need to configure private spaces for internal routing.'
-      ),
-    env: z
-      .record(z.string(), z.any())
-      .optional()
-      .describe('Key-value pairs of environment variables for the deployment that override the ones in app.json'),
-    appJson: z.string()
-      .describe(`Stringified app.json configuration for deployment. Used for dynamic configurations or converted projects.
-  The app.json string must be valid and conform to the following schema: ${JSON.stringify(appJsonSchema, null, 0)}`)
+      .describe(`App.json config for deployment. Must follow schema: ${JSON.stringify(appJsonSchema, null, 0)}`)
   })
   .strict();
 
@@ -639,14 +605,8 @@ export type DeployToHerokuParams = z.infer<typeof deployToHerokuSchema>;
 export const registerDeployToHerokuTool = (server: McpServer): void => {
   server.tool(
     'deploy_to_heroku',
-    'Deploy projects to Heroku, replaces manual git push workflows. Use this tool when you need to: ' +
-      '1) Deploy a new application with specific app.json configuration, 2) Update an existing application with new code, ' +
-      '3) Configure team or private space deployments, or 4) Set up environment-specific configurations. ' +
-      'Important: Check for an app.json file first. If an app.json does not exist in the workspace, you must create one and pass it in via the appJson parameter. ' +
-      'The tool handles app creation, source code deployment, and environment setup. ' +
-      'Requires valid app.json in workspace or provided via configuration. ' +
-      'Supports team deployments, private spaces, and custom environment variables.' +
-      'Use apps_list tool with the "all" param to get a list of apps for the user to choose from when deploying to an existing app and the app name was not provided.',
+    'Use for all deployments. Deploys new/existing apps, with or without teams/spaces, and env vars to Heroku. ' +
+      'Ask for app name if missing. Requires valid app.json via appJson param.',
     deployToHerokuSchema.shape,
     async (options: DeployToHerokuParams): Promise<McpToolResponse> => {
       const deployToHeroku = new DeployToHeroku();
@@ -683,50 +643,48 @@ export const registerDeployToHerokuTool = (server: McpServer): void => {
 // Define the schema for deploying to a one-off dyno
 export const deployOneOffDynoSchema = z
   .object({
-    name: z.string().min(5).max(30).describe('Name of the Heroku app for the one-off dyno.'),
-    command: z.string().describe('Command to execute in the one-off dyno.'),
+    name: z.string().min(5).max(30).describe('Target Heroku app name.'),
+    command: z.string().describe('Command to run in dyno.'),
     sources: z
       .array(
         z.object({
-          relativePath: z
-            .string()
-            .describe('A virtual path to the source file used to create the tarball entry for this file.'),
-          contents: z.string().describe('Contents of the source file represented as a string.')
+          relativePath: z.string().describe('Virtual path for tarball entry.'),
+          contents: z.string().describe('File contents.')
         })
       )
       .optional()
-      .describe('Array of objects representing the source files to include in the dyno.'),
-    size: z.string().optional().describe('Dyno size (optional).').default('standard-1x'),
-    timeToLive: z.number().optional().describe('Dyno lifespan in seconds (optional).').default(3600),
-    env: z.record(z.string(), z.any()).optional().describe('Environment variables for the dyno (optional).')
+      .describe('Source files to include in dyno.'),
+    size: z.string().optional().describe('Dyno size.').default('standard-1x'),
+    timeToLive: z.number().optional().describe('Dyno lifetime in seconds.').default(3600),
+    env: z.record(z.string(), z.any()).optional().describe('Dyno environment variables.')
   })
   .strict();
 
-export const execToolSchemaDescription = `
-Execute code or a command on a Heroku one-off dyno in a sandboxed environment with network and filesystem access.
+const execToolSchemaDescription = `
+Run code/commands in Heroku one-off dyno with network and filesystem access.
 
-**Requirements:**
-- Display command output to the user.
-- Determine app language using the 'app_info' tool to identify the Heroku buildpack.
-- Use shell commands for environment setup (e.g., package installations) before execution.
-- Output must utilize standard input/output.
+Requirements:
+- Show command output
+- Use app_info for buildpack detection
+- Support shell setup commands
+- Use stdout/stderr
 
-**Capabilities:**
-- Network and filesystem access
-- Environment variables support
-- File creation and execution in supported languages
-- Temporary directory management
+Features:
+- Network/filesystem access
+- Environment variables
+- File operations
+- Temp directory handling
 
-**Guidelines:**
-1. Use the appropriate Heroku-supported language runtime.
-2. Ensure correct syntax and module imports for the chosen language.
-3. Organize code into classes/functions, executed from the top level.
-4. For external packages:
-   - Specify in the appropriate package manager file.
-   - Minimize dependencies.
-   - Prefer native modules when possible.
+Usage:
+1. Use Heroku runtime
+2. Proper syntax/imports
+3. Organized code structure
+4. Package management:
+   - Define dependencies
+   - Minimize external deps
+   - Prefer native modules
 
-**Example (Node.js package manager file):**
+Example package.json:
 \`\`\`json
 {
   "type": "module",
@@ -736,6 +694,7 @@ Execute code or a command on a Heroku one-off dyno in a sandboxed environment wi
 }
 \`\`\`
 `;
+
 /**
  * Registers the deploy_one_off_dyno tool with the MCP server.
  * This tool handles deployment of one-off dynos to Heroku using the specified command and configuration.

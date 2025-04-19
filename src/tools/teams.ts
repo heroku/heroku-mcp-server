@@ -18,10 +18,7 @@ export const listTeamsOptionsSchema = z.object({
   json: z
     .boolean()
     .optional()
-    .describe(
-      'Controls the output format. When true, returns a detailed JSON response containing team metadata such as ' +
-        'enterprise account name. When false or omitted, returns a simplified text format.'
-    )
+    .describe('Output format control - true for detailed JSON with team metadata, false/omitted for simplified text')
 });
 
 /**
@@ -41,11 +38,7 @@ export type ListTeamsOptions = z.infer<typeof listTeamsOptionsSchema>;
 export const registerListTeamsTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'list_teams',
-    'List Heroku Teams the user belongs to. Use this tool when you need to: ' +
-      '1) View all accessible teams, 2) Check team membership, ' +
-      '3) Get team metadata and enterprise relationships, or ' +
-      '4) Verify team access for app operations. ' +
-      'Supports JSON output for detailed team information.',
+    'Lists accessible Heroku Teams. Use for: viewing teams, checking membership, getting team metadata, and verifying access. JSON output available.',
     listTeamsOptionsSchema.shape,
     async (options: ListTeamsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_TEAMS).addFlags({ json: options.json }).build();

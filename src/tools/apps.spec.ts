@@ -63,20 +63,7 @@ describe('apps topic tools', () => {
       });
     });
 
-    it('executes command successfully with json flag', async () => {
-      const expectedOutput = '[{"name": "test-app", "team": {"name": "test-team"}, "space": {"name": "test-space"}}]';
-      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ json: true }).build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
-
-      const result = await toolCallback({ json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(result).to.deep.equal({
-        content: [{ type: 'text', text: expectedOutput }]
-      });
-    });
-
-    it('executes command successfully without json flag', async () => {
+    it('executes command successfully', async () => {
       const expectedOutput = '=== user@example.com Apps\n\n' + 'test-app';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ json: false }).build();
 

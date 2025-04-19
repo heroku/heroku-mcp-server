@@ -8,77 +8,35 @@ import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
 
 /**
- * Schema for listing Heroku applications with filtering and output format options.
- * This schema defines the structure and validation rules for the list apps operation.
+ * Schema for listing Heroku apps with filters
  */
 export const listAppsOptionsSchema = z.object({
-  all: z
-    .boolean()
-    .optional()
-    .describe(
-      'When true, displays a comprehensive list including: (1) apps owned by the user and (2) apps where the user ' +
-        'is a collaborator through direct access or team membership. When false or omitted, shows only owned apps.'
-    ),
-  json: z
-    .boolean()
-    .optional()
-    .describe(
-      'Controls the output format. When true, returns a detailed JSON response containing app metadata such as ' +
-        'generation, buildpacks, owner information, and region. When false or omitted, returns a simplified text ' +
-        'format.'
-    ),
-  personal: z
-    .boolean()
-    .optional()
-    .describe(
-      'Forces the tool to list applications from your personal account, even when you have a default team configured. ' +
-        'When true, overrides any default team setting and shows only apps owned by your personal account. ' +
-        'This is particularly useful when you work with multiple teams but need to specifically view your personal apps. ' +
-        'When false or omitted, follows the default behavior of using the default team if one is set.'
-    ),
-  space: z
-    .string()
-    .optional()
-    .describe(
-      'Filters the results to show only apps within a specific private space. Provide the private space name to ' +
-        'filter. This parameter is mutually exclusive with the team parameter.'
-    ),
-  team: z
-    .string()
-    .optional()
-    .describe(
-      'Filters the results to show only apps belonging to a specific team. Provide the team name to filter. ' +
-        'This parameter is mutually exclusive with the space parameter.'
-    )
+  all: z.boolean().optional().describe('Show owned apps and collaborator access. Default: owned only'),
+  personal: z.boolean().optional().describe('List personal account apps only, ignoring default team'),
+  space: z.string().optional().describe('Filter by private space name. Excludes team param'),
+  team: z.string().optional().describe('Filter by team name. Excludes space param')
 });
 
 /**
- * Type definition for the options used when listing Heroku applications.
- * This type is derived from the listAppsOptionsSchema and provides type safety for the list apps operation.
+ * Type for list apps options
  */
 export type ListAppsOptions = z.infer<typeof listAppsOptionsSchema>;
 
 /**
- * Registers the list_apps tool with the MCP server.
- * This tool allows users to list Heroku applications with various filtering options
- * and output formats.
+ * Register list_apps tool
  *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
  */
 export const registerListAppsTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'list_apps',
-    'List Heroku applications with flexible filtering options. Use this tool when you need to: ' +
-      '1) Show all apps owned by the user, 2) Show apps where the user is a collaborator (use all=true), ' +
-      '3) Filter apps by team or private space. Note: For checking app name availability, prefer using get_app_info ' +
-      'as it returns a more focused dataset. The response includes app names, regions, and ownership information.',
+    'List Heroku apps: owned, collaborator access, team/space filtering',
     listAppsOptionsSchema.shape,
     async (options: ListAppsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS)
         .addFlags({
           all: options.all,
-          json: options.json,
           personal: options.personal,
           space: options.space,
           team: options.team
@@ -92,47 +50,28 @@ export const registerListAppsTool = (server: McpServer, herokuRepl: HerokuREPL):
 };
 
 /**
- * Schema for getting information about a Heroku application.
- * This schema defines the structure and validation rules for the get app info operation.
+ * Schema for app info retrieval
  */
 export const getAppInfoOptionsSchema = z.object({
-  app: z
-    .string()
-    .describe(
-      'The name of the Heroku app to get information about. This must be an existing app that you have access to.'
-    ),
-  json: z
-    .boolean()
-    .optional()
-    .describe(
-      'Controls the output format. When true, returns a detailed JSON response containing app metadata such as ' +
-        'add-ons, dynos, buildpack configurations, collaborators, and domain information. When false or omitted, ' +
-        'returns a simplified text format.'
-    )
+  app: z.string().describe('Target app name. Requires access permissions'),
+  json: z.boolean().optional().describe('JSON output with full metadata. Default: text format')
 });
 
 /**
- * Type definition for the options used when getting information about a Heroku application.
- * This type is derived from the getAppInfoOptionsSchema and provides type safety for the get app info operation.
+ * Type for app info options
  */
 export type GetAppInfoOptions = z.infer<typeof getAppInfoOptionsSchema>;
 
 /**
- * Registers the get_app_info tool with the MCP server.
- * This tool provides detailed information about a specific Heroku application,
- * including configuration, dynos, add-ons, and more.
+ * Register get_app_info tool
  *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
  */
 export const registerGetAppInfoTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'get_app_info',
-    'Get comprehensive information about a Heroku application. Use this tool when you need to: ' +
-      '1) View app configuration and settings, 2) Check dyno formation and scaling, ' +
-      '3) List add-ons and buildpacks, 4) View collaborators and access details, ' +
-      '5) Check domains and certificates. Accepts app name and optional JSON format. ' +
-      'Returns detailed app status and configuration.',
+    'Get app details: config, dynos, addons, access, domains',
     getAppInfoOptionsSchema.shape,
     async (options: GetAppInfoOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.GET_APP_INFO)
@@ -149,62 +88,30 @@ export const registerGetAppInfoTool = (server: McpServer, herokuRepl: HerokuREPL
 };
 
 /**
- * Schema for creating a new Heroku application.
- * This schema defines the structure and validation rules for the create app operation.
+ * Schema for app creation
  */
 export const createAppOptionsSchema = z.object({
-  app: z
-    .string()
-    .optional()
-    .describe(
-      'Specifies the desired name for the new Heroku app. If omitted, Heroku will auto-generate a random name. ' +
-        "Best practice: Provide a meaningful, unique name that reflects your application's purpose."
-    ),
-  region: z
-    .enum(['us', 'eu'])
-    .optional()
-    .describe(
-      'Determines the geographical region where your app will run. Options: "us" (United States) or "eu" (Europe). ' +
-        'Defaults to "us" if not specified. Note: Cannot be used with space parameter.'
-    ),
-  space: z
-    .string()
-    .optional()
-    .describe(
-      'Places the app in a specific private space, which provides enhanced security and networking features. ' +
-        'Specify the private space name. Note: When used, the app inherits the region from the private space and ' +
-        'the region parameter cannot be used.'
-    ),
-  team: z
-    .string()
-    .optional()
-    .describe(
-      'Associates the app with a specific team for collaborative development and management. Provide the team name ' +
-        "to set ownership. The app will be created under the team's account rather than your personal account."
-    )
+  app: z.string().optional().describe('App name. Auto-generated if omitted'),
+  region: z.enum(['us', 'eu']).optional().describe('Region: us/eu. Default: us. Excludes space param'),
+  space: z.string().optional().describe('Private space name. Inherits region. Excludes region param'),
+  team: z.string().optional().describe('Team name for ownership')
 });
 
 /**
- * Type definition for the options used when creating a new Heroku application.
- * This type is derived from the createAppOptionsSchema and provides type safety for the create app operation.
+ * Type for app creation options
  */
 export type CreateAppOptions = z.infer<typeof createAppOptionsSchema>;
 
 /**
- * Registers the create_app tool with the MCP server.
- * This tool enables creation of new Heroku applications with customizable settings
- * for region, team ownership, and private space placement.
+ * Register create_app tool
  *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
  */
 export const registerCreateAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'create_app',
-    'Create a new Heroku application with customizable settings. Use this tool when a user wants to: ' +
-      '1) Create a new app with a specific name, 2) Create an app in a particular region (US/EU), ' +
-      '3) Create an app within a team, or 4) Create an app in a private space. ' +
-      "The tool handles name generation if not specified and returns the new app's details.",
+    'Create app: custom name, region (US/EU), team, private space',
     createAppOptionsSchema.shape,
     async (options: CreateAppOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP)
@@ -223,39 +130,28 @@ export const registerCreateAppTool = (server: McpServer, herokuRepl: HerokuREPL)
 };
 
 /**
- * Schema for renaming a Heroku application.
- * This schema defines the structure and validation rules for the rename app operation.
+ * Schema for app rename
  */
 export const renameAppOptionsSchema = z.object({
-  app: z
-    .string()
-    .describe(
-      'The current name of the Heroku app you want to rename. This must be an existing app that you have access to.'
-    ),
-  newName: z.string().describe('The new name you want to give to the app. Must be unique across all Heroku apps.')
+  app: z.string().describe('Current app name. Requires access'),
+  newName: z.string().describe('New unique app name')
 });
 
 /**
- * Type definition for the options used when renaming a Heroku application.
- * This type is derived from the renameAppOptionsSchema and provides type safety for the rename app operation.
+ * Type for app rename options
  */
 export type RenameAppOptions = z.infer<typeof renameAppOptionsSchema>;
 
 /**
- * Registers the rename_app tool with the MCP server.
- * This tool allows renaming of existing Heroku applications while ensuring
- * name availability and access permissions.
+ * Register rename_app tool
  *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
  */
 export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'rename_app',
-    'Rename an existing Heroku application. Use this tool when a user needs to: ' +
-      "1) Change an app's name, or 2) Resolve naming conflicts. " +
-      'Requires both current app name and desired new name. ' +
-      'The tool validates name availability and handles the rename process.',
+    'Rename app: validate and update app name',
     renameAppOptionsSchema.shape,
     async (options: RenameAppOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP)
@@ -270,46 +166,28 @@ export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL)
 };
 
 /**
- * Schema for transferring ownership of a Heroku application.
- * This schema defines the structure and validation rules for the transfer app operation.
+ * Schema for app ownership transfer
  */
 export const transferAppOptionsSchema = z.object({
-  app: z
-    .string()
-    .describe(
-      'The name of the Heroku app you want to transfer ownership of. You must be the current owner of this app or ' +
-        'a team admin to transfer it.'
-    ),
-  recipient: z
-    .string()
-    .describe(
-      'The email address of the user or the name of the team who will receive ownership of the app. The recipient ' +
-        'must have a Heroku account.'
-    )
+  app: z.string().describe('App to transfer. Requires owner/admin access'),
+  recipient: z.string().describe('Target user email or team name')
 });
 
 /**
- * Type definition for the options used when transferring a Heroku application.
- * This type is derived from the transferAppOptionsSchema and provides type safety for the transfer app operation.
+ * Type for app transfer options
  */
 export type TransferAppOptions = z.infer<typeof transferAppOptionsSchema>;
 
 /**
- * Registers the transfer_app tool with the MCP server.
- * This tool facilitates ownership transfer of Heroku applications between users
- * or to teams, with appropriate permission checks.
+ * Register transfer_app tool
  *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
  */
 export const registerTransferAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'transfer_app',
-    'Transfer ownership of a Heroku application. Use this tool when a user wants to: ' +
-      "1) Transfer an app to another user's account, 2) Move an app to a team, " +
-      '3) Change app ownership for organizational purposes. ' +
-      'Requires the app name and recipient (email for users, name for teams). ' +
-      'The current user must be the app owner or a team admin to perform the transfer.',
+    'Transfer app ownership to user/team',
     transferAppOptionsSchema.shape,
     async (options: TransferAppOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.TRANSFER_APP)
