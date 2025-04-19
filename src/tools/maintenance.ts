@@ -12,11 +12,7 @@ import { McpToolResponse } from '../utils/mcp-tool-response.js';
  * This schema defines the structure and validation rules for both enabling and disabling maintenance mode.
  */
 export const maintenanceModeOptionsSchema = z.object({
-  app: z
-    .string()
-    .describe(
-      'The name of the Heroku app to modify maintenance mode for. This must be an existing app that you have access to.'
-    )
+  app: z.string().describe('Target Heroku app name')
 });
 
 /**
@@ -35,10 +31,7 @@ export type MaintenanceModeOptions = z.infer<typeof maintenanceModeOptionsSchema
 export const registerMaintenanceOnTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'maintenance_on',
-    'Enable maintenance mode for Heroku applications. Use this tool when you need to: ' +
-      '1) Redirect traffic to a maintenance page, 2) Prepare for system updates or deployments, ' +
-      '3) Schedule planned maintenance windows, 4) Gracefully handle service interruptions. ' +
-      'The tool manages traffic routing and process states while preserving running operations.',
+    'Enable maintenance mode and redirect traffic for a Heroku app',
     maintenanceModeOptionsSchema.shape,
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_ON)
@@ -63,10 +56,7 @@ export const registerMaintenanceOnTool = (server: McpServer, herokuRepl: HerokuR
 export const registerMaintenanceOffTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'maintenance_off',
-    'Disable maintenance mode for Heroku applications. Use this tool when you need to: ' +
-      '1) Restore normal application traffic routing, 2) Resume dyno operations after maintenance, ' +
-      '3) Complete deployment processes, 4) Verify application health after maintenance. ' +
-      'The tool handles service restoration and process resumption.',
+    'Disable maintenance mode and restore normal app operations',
     maintenanceModeOptionsSchema.shape,
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_OFF)
