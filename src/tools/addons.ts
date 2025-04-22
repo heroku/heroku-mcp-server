@@ -18,8 +18,7 @@ export const listAddonsOptionsSchema = z.object({
   app: z
     .string()
     .optional()
-    .describe('Filter by app name. Shows add-ons and attachments. Uses Git remote default if omitted'),
-  json: z.boolean().optional().describe('JSON output with full metadata: ID, plan, config vars, attachments, billing')
+    .describe('Filter by app name. Shows add-ons and attachments. Uses Git remote default if omitted')
 });
 
 /**
@@ -42,8 +41,7 @@ export const registerListAddonsTool = (server: McpServer, herokuRepl: HerokuREPL
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDONS)
         .addFlags({
           all: options.all,
-          app: options.app,
-          json: options.json
+          app: options.app
         })
         .build();
 

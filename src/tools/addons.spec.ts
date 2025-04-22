@@ -79,21 +79,6 @@ describe('addons topic tools', () => {
         content: [{ type: 'text', text: expectedOutput }]
       });
     });
-
-    it('executes command successfully with json flag', async () => {
-      const expectedOutput = '[{"name": "postgresql-curved-12345", "plan": {"name": "heroku-postgresql:essential-0"}}]';
-      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDONS)
-        .addFlags({ app: 'test-app', json: true })
-        .build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
-
-      const result = await toolCallback({ app: 'test-app', json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(result).to.deep.equal({
-        content: [{ type: 'text', text: expectedOutput }]
-      });
-    });
   });
 
   describe('registerGetAddonInfoTool', () => {
@@ -277,22 +262,7 @@ describe('addons topic tools', () => {
       expect(call.args[2]).to.deep.equal(listAddonServicesOptionsSchema.shape);
     });
 
-    it('executes command successfully with json flag', async () => {
-      const expectedOutput =
-        '[{"human_name": "Heroku PostgreSQL", "name": "heroku-postgresql", "state": "ga"},' +
-        ' {"human_name": "Heroku Key-Value Store", "name": "heroku-redis", "state": "ga"}]';
-      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_SERVICES).addFlags({ json: true }).build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
-
-      const result = await toolCallback({ json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(result).to.deep.equal({
-        content: [{ type: 'text', text: expectedOutput }]
-      });
-    });
-
-    it('executes command successfully without json flag', async () => {
+    it('executes command successfully', async () => {
       const expectedOutput =
         ' Slug              Name                   State \n' +
         ' ───────────────── ────────────────────── ───── \n' +
@@ -338,25 +308,7 @@ describe('addons topic tools', () => {
       expect(call.args[2]).to.deep.equal(listAddonPlansOptionsSchema.shape);
     });
 
-    it('executes command successfully with json flag', async () => {
-      const expectedOutput =
-        '[{"installable_inside_private_network": false, "name": "essential-0", "price": {"cents": 500}}, ' +
-        ' {"installable_inside_private_network": false, "name": "essential-1", "price": {"cents": 900}}]';
-      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_PLANS)
-        .addFlags({ json: true })
-        .addPositionalArguments({ service: 'heroku-postgresql' })
-        .build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
-
-      const result = await toolCallback({ service: 'heroku-postgresql', json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(result).to.deep.equal({
-        content: [{ type: 'text', text: expectedOutput }]
-      });
-    });
-
-    it('executes command successfully without json flag', async () => {
+    it('executes command successfully', async () => {
       const expectedOutput =
         '         Slug                           Name         Price         Max price    \n' +
         ' ─────── ────────────────────────────── ──────────── ───────────── ──────────── \n' +
