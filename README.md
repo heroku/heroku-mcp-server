@@ -43,7 +43,7 @@ Generate a Heroku authorization token with one of these methods:
 
 ## Configure the Heroku Platform MCP Server
 
-You can configure Claude Desktop, Zed, Cursor, and Windsurf to work with the Heroku Platform MCP Server.
+You can configure Claude Desktop, Zed, Cursor, Windsurf and others to work with the Heroku Platform MCP Server.
 
 ### [Claude Desktop](https://claude.ai/download)
 
@@ -53,7 +53,10 @@ Add this snippet to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "heroku": {
-      "command": "npx -y @heroku/mcp-server",
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
@@ -72,10 +75,10 @@ Add this snippet to your Zed `settings.json`:
     "heroku": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@heroku/mcp-server"],
-        "env": {
-          "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
-        }
+        "args": ["-y", "@heroku/mcp-server"]
+      },
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
     }
   }
@@ -90,7 +93,10 @@ Add this snippet to your Cursor `mcp.json`:
 {
   "mcpServers": {
     "heroku": {
-      "command": "npx -y @heroku/mcp-server",
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
@@ -107,7 +113,71 @@ Add this snippet to your Windsurf `mcp_config.json`:
 {
   "mcpServers": {
     "heroku": {
-      "command": "npx -y @heroku/mcp-server",
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+### [Cline](https://cline.ai)
+
+Add this snippet to your Cline `config.json`:
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+### [VSCode](https://code.visualstudio.com/)
+
+Add this snippet to your VSCode `settings.json` or `.vscode/mcp.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "heroku": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@heroku/mcp-server"],
+        "env": {
+          "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+        }
+      }
+    }
+  }
+}
+```
+
+### [Trae](https://trae.dev)
+
+Add this snippet to your Trae `mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
