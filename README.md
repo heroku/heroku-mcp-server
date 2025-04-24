@@ -71,8 +71,10 @@ Add this snippet to your Zed `settings.json`:
 {
   "context_servers": {
     "heroku": {
-      "command": "npx",
-      "args": ["-y", "@heroku/mcp-server"],
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@heroku/mcp-server"]
+      },
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
