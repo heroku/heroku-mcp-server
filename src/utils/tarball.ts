@@ -2,8 +2,8 @@ import zlib from 'node:zlib';
 import { readFile, stat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+// @ts-ignore
 import * as tar from 'tar-stream';
-
 export type GeneratedContent = { relativePath: string; contents: Uint8Array };
 /**
  * Creates a compressed tarball (tar.gz) from the contents of a workspace folder.
