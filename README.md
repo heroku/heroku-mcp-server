@@ -73,10 +73,10 @@ Add this snippet to your Zed `settings.json`:
     "heroku": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@heroku/mcp-server"]
-      },
-      "env": {
-        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+        "args": ["-y", "@heroku/mcp-server"],
+        "env": {
+          "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+        }
       }
     }
   }
@@ -85,16 +85,34 @@ Add this snippet to your Zed `settings.json`:
 
 ### [Cursor](https://www.cursor.com/)
 
+> **Note:** Both the simple and explicit forms work, but the key should be `"heroku"` (not `"heroku-mcp-server"`) for
+> maximum compatibility with agent tools.
+
 Add this snippet to your Cursor `mcp.json`:
+
+**Simple form:**
 
 ```json
 {
   "mcpServers": {
     "heroku": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "@heroku/mcp-server"]
-      },
+      "command": "npx -y @heroku/mcp-server",
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+**Explicit form:**
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "npx",
+      "args": ["-y", "@heroku/mcp-server"],
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
@@ -111,10 +129,8 @@ Add this snippet to your Windsurf `mcp_config.json`:
 {
   "mcpServers": {
     "heroku": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "@heroku/mcp-server"]
-      },
+      "command": "npx",
+      "args": ["-y", "@heroku/mcp-server"],
       "env": {
         "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
       }
