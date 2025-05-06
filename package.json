@@ -1,7 +1,7 @@
 {
   "name": "@heroku/mcp-server",
   "description": "Heroku Platform MCP Server",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Heroku",
   "bugs": "https://github.com/heroku/heroku-mcp-server/issues",
   "bin": {
