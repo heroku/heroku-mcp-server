@@ -1,0 +1,21 @@
+{
+  "name": "mcp-heroku-server",
+  "description": "MCP Server for interacting with the Heroku platform API",
+  "repository": "https://github.com/heroku/heroku-mcp-server",
+  "keywords": [
+    "node",
+    "mcp",
+    "heroku"
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "HEROKU_API_KEY": {
+      "description": "Heroku API key for authentication. Generate one with `heroku authorizations:create`.",
+      "required": true
+    }
+  }
+}

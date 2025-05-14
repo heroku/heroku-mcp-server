@@ -3,6 +3,10 @@
 [![smithery badge](https://smithery.ai/badge/@heroku/heroku-mcp-server)](https://smithery.ai/server/@heroku/heroku-mcp-server)
 > The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
 
+## Deploy on Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://www.heroku.com/deploy?template=https://github.com/heroku/heroku-mcp-server)
+
 ## Overview
 
 The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate
