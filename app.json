@@ -1,0 +1,22 @@
+{
+  "name": "mcp-heroku-server",
+  "description": "MCP Server for interacting with the Heroku platform API",
+  "repository": "https://github.com/heroku/heroku-mcp-server",
+  "keywords": [
+    "node",
+    "mcp",
+    "heroku"
+  ],
+  "formation": [
+    {
+      "quantity": 0,
+      "size": "standard-1x",
+      "type": "web"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}
