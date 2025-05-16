@@ -55,5 +55,6 @@ export const TOOL_COMMAND_MAP = {
 
   // AI commands
   LIST_AI_AVAILABLE_MODELS: 'ai:models:list',
-  PROVISION_AI_MODEL: 'ai:models:create'
+  PROVISION_AI_MODEL: 'ai:models:create',
+  AI_AGENTS_CALL: 'ai:agents:call'
 } as const;

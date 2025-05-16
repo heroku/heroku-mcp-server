@@ -201,6 +201,18 @@ export class HerokuREPL {
   private handleOutput(output: string): void {
     this.buffer += output;
 
+    // Reset the timeout on every output if a command is being processed
+    if (this.isProcessingCommand) {
+      clearTimeout(this.commandTimeoutId);
+      this.commandTimeoutId = setTimeout(() => {
+        // If a timeout occurs, we need to restart the process
+        void this.initializeProcess();
+        this.handleOutput(
+          `The command failed to complete in ${this.commandTimeout}ms\n${COMMAND_END_RESULTS_MESSAGE}\n`
+        );
+      }, this.commandTimeout);
+    }
+
     // Check if command execution is complete
     if (this.buffer.includes(COMMAND_END_RESULTS_MESSAGE) && this.isProcessingCommand) {
       const result = this.buffer.trim();

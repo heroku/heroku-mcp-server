@@ -79,6 +79,7 @@ deployToHeroku.registerDeployOneOffDynoTool(server);
 // AI-related tools
 ai.registerListAiAvailableModelsTool(server, herokuRepl);
 ai.registerProvisionAiModelTool(server, herokuRepl);
+ai.registerMakeAiInferenceTool(server, herokuRepl);
 
 /**
  * Run the server
