@@ -49,6 +49,11 @@ export const TOOL_COMMAND_MAP = {
   PIPELINES_CREATE: 'pipelines:create',
   PIPELINES_PROMOTE: 'pipelines:promote',
   PIPELINES_INFO: 'pipelines:info',
+
   // Logs commands
-  LOGS: 'logs'
+  LOGS: 'logs',
+
+  // AI commands
+  LIST_AI_AVAILABLE_MODELS: 'ai:models:list',
+  PROVISION_AI_MODEL: 'ai:models:create'
 } as const;
