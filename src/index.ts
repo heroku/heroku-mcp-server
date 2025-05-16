@@ -13,6 +13,7 @@ import * as ps from './tools/ps.js';
 import * as pipelines from './tools/pipelines.js';
 import * as deployToHeroku from './tools/deploy-to-heroku.js';
 import * as logs from './tools/logs.js';
+import * as ai from './tools/ai.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
 
@@ -74,6 +75,10 @@ pipelines.registerPipelinesInfoTool(server, herokuRepl);
 // Deploy-to-Heroku tool
 deployToHeroku.registerDeployToHerokuTool(server);
 deployToHeroku.registerDeployOneOffDynoTool(server);
+
+// AI-related tools
+ai.registerListAiAvailableModelsTool(server, herokuRepl);
+ai.registerProvisionAiModelTool(server, herokuRepl);
 
 /**
  * Run the server

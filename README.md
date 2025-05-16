@@ -1,6 +1,7 @@
 # heroku-mcp-server
 
 [![smithery badge](https://smithery.ai/badge/@heroku/heroku-mcp-server)](https://smithery.ai/server/@heroku/heroku-mcp-server)
+
 > The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
 
 ## Deploy on Heroku
@@ -388,7 +389,8 @@ Note: the debugger automatically builds your TypeScript files before launching.
 
 ### Installing via Smithery
 
-To install Heroku Platform MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@heroku/heroku-mcp-server):
+To install Heroku Platform MCP Server for Claude Desktop automatically via
+[Smithery](https://smithery.ai/server/@heroku/heroku-mcp-server):
 
 ```bash
 npx -y @smithery/cli install @heroku/heroku-mcp-server --client claude
