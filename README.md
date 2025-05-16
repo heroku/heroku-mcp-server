@@ -395,3 +395,32 @@ To install Heroku Platform MCP Server for Claude Desktop automatically via
 ```bash
 npx -y @smithery/cli install @heroku/heroku-mcp-server --client claude
 ```
+
+## Environment Variables
+
+The Heroku Platform MCP Server supports the following environment variables:
+
+### `HEROKU_API_KEY`
+
+Your Heroku authorization token. Required for authentication with the Heroku Platform.
+
+### `MCP_SERVER_REQUEST_TIMEOUT`
+
+Timeout in milliseconds for command execution. Defaults to 15000 (15 seconds) if not set.
+
+Example configuration with custom timeout:
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "npx",
+      "args": ["-y", "@heroku/mcp-server"],
+      "env": {
+        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>",
+        "MCP_SERVER_REQUEST_TIMEOUT": "30000"
+      }
+    }
+  }
+}
+```

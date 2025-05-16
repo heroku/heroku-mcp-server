@@ -20,7 +20,9 @@ import { HerokuREPL } from './repl/heroku-cli-repl.js';
 const VERSION = pjson.default.version;
 
 const server = new McpServer({ name: 'Heroku MCP Server', version: VERSION });
-const herokuRepl = new HerokuREPL();
+const herokuRepl = new HerokuREPL(
+  isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT)) ? 15_000 : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT)
+);
 
 // App-related tools
 apps.registerListAppsTool(server, herokuRepl);
@@ -79,6 +81,7 @@ deployToHeroku.registerDeployOneOffDynoTool(server);
 // AI-related tools
 ai.registerListAiAvailableModelsTool(server, herokuRepl);
 ai.registerProvisionAiModelTool(server, herokuRepl);
+ai.registerMakeAiInferenceTool(server, herokuRepl);
 
 /**
  * Run the server

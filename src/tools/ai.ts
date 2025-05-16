@@ -16,7 +16,7 @@ import { McpToolResponse } from '../utils/mcp-tool-response.js';
 export const registerListAiAvailableModelsTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'list_ai_available_models',
-    'List Heroku AI available inference models',
+    'List available AI inference models',
     z.object({}).shape,
     async (): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_AI_AVAILABLE_MODELS).build();
@@ -57,7 +57,7 @@ export type ProvisionAiModelOptions = z.infer<typeof provisionAiModelOptionsSche
 export const registerProvisionAiModelTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
   server.tool(
     'provision_ai_model',
-    'Provision access to an AI model for an app',
+    'Provision AI model access for app',
     provisionAiModelOptionsSchema.shape,
     async (options: ProvisionAiModelOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PROVISION_AI_MODEL)
@@ -65,6 +65,127 @@ export const registerProvisionAiModelTool = (server: McpServer, herokuRepl: Hero
         .addFlags({
           app: options.app,
           as: options.as
+        })
+        .build();
+
+      const output = await herokuRepl.executeCommand(command);
+      return handleCliOutput(output);
+    }
+  );
+};
+
+/**
+ * Schema for agent message
+ */
+const agentMessageSchema = z.object({
+  role: z.string(),
+  content: z.string()
+});
+
+/**
+ * Schema for agent tool parameters
+ */
+const agentToolParametersSchema = z.object({
+  type: z.string(),
+  properties: z.record(z.unknown()),
+  required: z.array(z.string())
+});
+
+/**
+ * Schema for agent tool params
+ */
+const agentToolParamsSchema = z.object({
+  cmd: z.string().optional(),
+  description: z.string().optional(),
+  parameters: agentToolParametersSchema.optional()
+});
+
+/**
+ * Schema for agent runtime params
+ */
+const agentRuntimeParamsSchema = z.object({
+  // eslint-disable-next-line camelcase
+  target_app_name: z.string().optional(),
+  // eslint-disable-next-line camelcase
+  tool_params: agentToolParamsSchema.optional()
+});
+
+/**
+ * Schema for agent tool
+ */
+const agentToolSchema = z.object({
+  type: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  // eslint-disable-next-line camelcase
+  runtime_params: agentRuntimeParamsSchema.optional()
+});
+
+/**
+ * Schema for agent request
+ */
+const agentRequestSchema = z.object({
+  model: z.string(),
+  messages: z.array(agentMessageSchema),
+  // eslint-disable-next-line camelcase
+  max_tokens_per_inference_request: z.number().optional(),
+  stop: z.array(z.string()).optional(),
+  temperature: z.number().optional(),
+  tools: z.array(agentToolSchema).optional(),
+  // eslint-disable-next-line camelcase
+  top_p: z.number().optional()
+});
+
+/**
+ * Schema for making an AI inference request
+ */
+export const aiInferenceOptionsSchema = z.object({
+  app: z.string().describe('App name/ID (required for alias)'),
+  modelResource: z.string().describe('Model resource ID/alias (requires --app for alias)').default('heroku-inference'),
+  opts: z
+    .string()
+    .describe('JSON string with model, messages, and optional params (temp, tools, etc)')
+    .refine(
+      (val) => {
+        try {
+          const parsed = JSON.parse(val) as z.infer<typeof agentRequestSchema>;
+          return agentRequestSchema.safeParse(parsed).success;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'Invalid JSON string or does not match AgentRequest shape'
+      }
+    ),
+  json: z.boolean().optional().describe('Output as JSON').default(false),
+  output: z.string().optional().describe('Output file path')
+});
+
+/**
+ * Type for AI inference options
+ */
+export type AiInferenceOptions = z.infer<typeof aiInferenceOptionsSchema>;
+
+/**
+ * Register make_ai_inference tool
+ *
+ * @param server MCP server instance
+ * @param herokuRepl Heroku REPL instance
+ */
+export const registerMakeAiInferenceTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+  server.tool(
+    'make_ai_inference',
+    'Make inference request to Heroku AI API',
+    aiInferenceOptionsSchema.shape,
+    async (options: AiInferenceOptions): Promise<McpToolResponse> => {
+      const command = new CommandBuilder(TOOL_COMMAND_MAP.AI_AGENTS_CALL)
+        .addPositionalArguments({ modelResource: options.modelResource })
+        .addFlags({
+          app: options.app,
+          json: options.json,
+          output: options.output,
+          opts: `'${options.opts.replaceAll('\n', '')}'`
         })
         .build();
 

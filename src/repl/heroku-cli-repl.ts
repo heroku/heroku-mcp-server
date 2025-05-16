@@ -83,15 +83,7 @@ export class HerokuREPL {
       this.isProcessingCommand = true;
       this.process?.stdin?.write(nextCommand.command + '\n');
 
-      this.commandTimeoutId = setTimeout(() => {
-        // If a timeout occurs, we need to restart the process
-        // in case it's in a bad state or an error occurred
-        // that we can't recover from
-        void this.initializeProcess();
-        this.handleOutput(
-          `The command failed to complete in ${this.commandTimeout}ms\n${COMMAND_END_RESULTS_MESSAGE}\n`
-        );
-      }, this.commandTimeout);
+      this.setCommandTimeout();
 
       yield nextCommand.promise;
     }
@@ -201,6 +193,10 @@ export class HerokuREPL {
   private handleOutput(output: string): void {
     this.buffer += output;
 
+    if (this.isProcessingCommand) {
+      this.setCommandTimeout();
+    }
+
     // Check if command execution is complete
     if (this.buffer.includes(COMMAND_END_RESULTS_MESSAGE) && this.isProcessingCommand) {
       const result = this.buffer.trim();
@@ -226,6 +222,20 @@ export class HerokuREPL {
     this.pauseIterator = new Promise((resolve) => {
       this.pauseIteratorResolver = resolve;
     });
+  }
+
+  /**
+   * Sets a timeout for command execution
+   */
+  private setCommandTimeout(): void {
+    clearTimeout(this.commandTimeoutId);
+    this.commandTimeoutId = setTimeout(() => {
+      // If a timeout occurs, we need to restart the process
+      // in case it's in a bad state or an error occurred
+      // that we can't recover from
+      void this.initializeProcess();
+      this.handleOutput(`The command failed to complete in ${this.commandTimeout}ms\n${COMMAND_END_RESULTS_MESSAGE}\n`);
+    }, this.commandTimeout);
   }
 
   /**

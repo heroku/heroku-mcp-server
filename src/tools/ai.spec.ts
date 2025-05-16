@@ -5,7 +5,9 @@ import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import {
   registerListAiAvailableModelsTool,
   registerProvisionAiModelTool,
-  provisionAiModelOptionsSchema
+  provisionAiModelOptionsSchema,
+  registerMakeAiInferenceTool,
+  aiInferenceOptionsSchema
 } from './ai.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
@@ -115,6 +117,111 @@ describe('ai topic tools', () => {
 
       const result = await toolCallback({ app: 'test-app', modelName: 'claude-3-5-sonnet-latest', as: 'MY_MODEL' }, {});
       expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: expectedOutput }]
+      });
+    });
+  });
+
+  describe('makeAiInferenceTool', () => {
+    let server: sinon.SinonStubbedInstance<McpServer>;
+    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let toolCallback: Function;
+
+    beforeEach(() => {
+      server = sinon.createStubInstance(McpServer);
+      herokuRepl = sinon.createStubInstance(HerokuREPL);
+
+      server.tool.callsFake((_name: string, _description: string, _schema: any, callback: Function) => {
+        toolCallback = callback;
+        return server;
+      });
+
+      registerMakeAiInferenceTool(server, herokuRepl);
+    });
+
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('registers the tool with correct name and schema', () => {
+      expect(server.tool.calledOnce).to.be.true;
+      const call = server.tool.getCall(0);
+      expect(call.args[0]).to.equal('make_ai_inference');
+      expect(call.args[2]).to.deep.equal(aiInferenceOptionsSchema.shape);
+    });
+
+    it('executes command successfully with required arguments', async () => {
+      const expectedOutput = 'AI inference response content';
+      const opts = {
+        model: 'claude-3-5-sonnet-latest',
+        messages: [{ role: 'user', content: 'Hello' }]
+      };
+      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.AI_AGENTS_CALL)
+        .addPositionalArguments({ modelResource: 'heroku-inference' })
+        .addFlags({
+          app: 'test-app',
+          json: false,
+          opts: `'${JSON.stringify(opts).replaceAll('\n', '')}'`
+        })
+        .build();
+
+      herokuRepl.executeCommand.resolves(expectedOutput);
+
+      const result = await toolCallback(
+        {
+          modelResource: 'heroku-inference',
+          app: 'test-app',
+          opts: JSON.stringify(opts)
+        },
+        {}
+      );
+      const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
+      expect(actualCommand).to.equal(expectedCommand);
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: expectedOutput }]
+      });
+    });
+
+    it('executes command successfully with all optional parameters', async () => {
+      const expectedOutput = 'AI inference response content';
+      const opts = {
+        model: 'claude-3-5-sonnet-latest',
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 0.7,
+        max_tokens_per_inference_request: 1000,
+        tools: [
+          {
+            type: 'function',
+            name: 'test_tool',
+            description: 'A test tool'
+          }
+        ]
+      };
+      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.AI_AGENTS_CALL)
+        .addPositionalArguments({ modelResource: 'custom-model' })
+        .addFlags({
+          app: 'test-app',
+          json: true,
+          output: 'output.json',
+          opts: `'${JSON.stringify(opts).replaceAll('\n', '')}'`
+        })
+        .build();
+
+      herokuRepl.executeCommand.resolves(expectedOutput);
+
+      const result = await toolCallback(
+        {
+          app: 'test-app',
+          modelResource: 'custom-model',
+          opts: JSON.stringify(opts),
+          json: true,
+          output: 'output.json'
+        },
+        {}
+      );
+      const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
+      expect(actualCommand).to.equal(expectedCommand);
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
