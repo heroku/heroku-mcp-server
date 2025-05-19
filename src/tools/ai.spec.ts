@@ -11,6 +11,9 @@ import {
 } from './ai.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
 describe('ai topic tools', () => {
   describe('registerListAiAvailableModelsTool', () => {
@@ -127,6 +130,11 @@ describe('ai topic tools', () => {
     let server: sinon.SinonStubbedInstance<McpServer>;
     let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
     let toolCallback: Function;
+    let mkdtempStub: sinon.SinonStub;
+    let writeFileStub: sinon.SinonStub;
+    let rmdirStub: sinon.SinonStub;
+    let tempDir: string;
+    let optsFilePath: string;
 
     beforeEach(() => {
       server = sinon.createStubInstance(McpServer);
@@ -136,6 +144,12 @@ describe('ai topic tools', () => {
         toolCallback = callback;
         return server;
       });
+
+      tempDir = '/tmp/com.heroku.mcp.ai.inference-12345';
+      optsFilePath = path.join(tempDir, 'opts.json');
+      mkdtempStub = sinon.stub(fs, 'mkdtemp').resolves(tempDir);
+      writeFileStub = sinon.stub(fs, 'writeFile').resolves();
+      rmdirStub = sinon.stub(fs, 'rmdir').resolves();
 
       registerMakeAiInferenceTool(server, herokuRepl);
     });
@@ -151,7 +165,7 @@ describe('ai topic tools', () => {
       expect(call.args[2]).to.deep.equal(aiInferenceOptionsSchema.shape);
     });
 
-    it('executes command successfully with required arguments', async () => {
+    it('executes command successfully with required arguments and handles temp files', async () => {
       const expectedOutput = 'AI inference response content';
       const opts = {
         model: 'claude-3-5-sonnet-latest',
@@ -162,7 +176,8 @@ describe('ai topic tools', () => {
         .addFlags({
           app: 'test-app',
           json: false,
-          opts: `'${JSON.stringify(opts).replaceAll('\n', '')}'`
+          output: undefined,
+          optfile: optsFilePath
         })
         .build();
 
@@ -172,18 +187,22 @@ describe('ai topic tools', () => {
         {
           modelResource: 'heroku-inference',
           app: 'test-app',
-          opts: JSON.stringify(opts)
+          opts
         },
         {}
       );
       const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
       expect(actualCommand).to.equal(expectedCommand);
+      expect(mkdtempStub.calledOnce).to.be.true;
+      expect(mkdtempStub.firstCall.args[0]).to.include('com.heroku.mcp.ai.inference');
+      expect(writeFileStub.calledOnceWith(optsFilePath, JSON.stringify(opts, null, 0))).to.be.true;
+      expect(rmdirStub.calledOnceWith(tempDir, { recursive: true })).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
     });
 
-    it('executes command successfully with all optional parameters', async () => {
+    it('executes command successfully with all optional parameters and handles temp files', async () => {
       const expectedOutput = 'AI inference response content';
       const opts = {
         model: 'claude-3-5-sonnet-latest',
@@ -204,7 +223,7 @@ describe('ai topic tools', () => {
           app: 'test-app',
           json: true,
           output: 'output.json',
-          opts: `'${JSON.stringify(opts).replaceAll('\n', '')}'`
+          optfile: optsFilePath
         })
         .build();
 
@@ -214,7 +233,7 @@ describe('ai topic tools', () => {
         {
           app: 'test-app',
           modelResource: 'custom-model',
-          opts: JSON.stringify(opts),
+          opts,
           json: true,
           output: 'output.json'
         },
@@ -222,6 +241,10 @@ describe('ai topic tools', () => {
       );
       const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
       expect(actualCommand).to.equal(expectedCommand);
+      expect(mkdtempStub.calledOnce).to.be.true;
+      expect(mkdtempStub.firstCall.args[0]).to.include('com.heroku.mcp.ai.inference');
+      expect(writeFileStub.calledOnceWith(optsFilePath, JSON.stringify(opts, null, 0))).to.be.true;
+      expect(rmdirStub.calledOnceWith(tempDir, { recursive: true })).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
