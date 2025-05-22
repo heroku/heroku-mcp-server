@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentRequest",
+  "type": "object",
+  "properties": {
+    "model": { "type": "string" },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string" },
+          "content": { "type": "string" }
+        },
+        "required": ["role", "content"]
+      }
+    },
+    "max_tokens_per_inference_request": { "type": "number" },
+    "stop": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "temperature": { "type": "number" },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "runtime_params": {
+            "type": "object",
+            "properties": {
+              "target_app_name": { "type": "string" },
+              "tool_params": {
+                "type": "object",
+                "properties": {
+                  "cmd": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "required": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "required": ["type", "properties", "required"]
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": []
+          }
+        },
+        "required": ["type", "name"]
+      }
+    },
+    "top_p": { "type": "number" }
+  },
+  "required": ["model", "messages"]
+}
