@@ -1,11 +1,11 @@
 {
   "name": "@heroku/mcp-server",
   "description": "Heroku Platform MCP Server",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "author": "Heroku",
   "bugs": "https://github.com/heroku/heroku-mcp-server/issues",
   "bin": {
-    "heroku-mcp-server": "./dist/index.js"
+    "heroku-mcp-server": "dist/index.js"
   },
   "type": "module",
   "dependencies": {
@@ -68,7 +68,10 @@
     "mcp"
   ],
   "license": "Apache-2.0",
-  "repository": "heroku/heroku-mcp-server",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heroku/heroku-mcp-server.git"
+  },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json && npm run exec-perms",
     "build:dev": "rm -rf dist && tsc --sourceMap -p tsconfig.json && npm run exec-perms",
