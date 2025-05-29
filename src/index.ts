@@ -20,9 +20,16 @@ import { HerokuREPL } from './repl/heroku-cli-repl.js';
 const VERSION = pjson.default.version;
 
 const server = new McpServer({ name: 'Heroku MCP Server', version: VERSION });
-const herokuRepl = new HerokuREPL(
-  isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT)) ? 15_000 : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT)
-);
+const requestTimeout = isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT))
+  ? 15_000
+  : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT);
+const herokuRepl = new HerokuREPL(requestTimeout);
+
+// Listen for MCP-formatted fatal startup errors
+herokuRepl.on('fatalError', (mcpError) => {
+  process.stderr.write(JSON.stringify(mcpError) + '\n');
+  process.exit(1);
+});
 
 // App-related tools
 apps.registerListAppsTool(server, herokuRepl);
@@ -86,26 +93,17 @@ ai.registerMakeAiInferenceTool(server, herokuRepl);
 /**
  * Run the server
  */
-async function runServer(): Promise<void> {
+export const runServer = async (): Promise<void> => {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   process.stderr.write('Heroku MCP Server running on stdio');
-}
-
-try {
-  await runServer();
-} catch (error) {
-  const { message } = error as Error;
-  process.stderr.write(`Fatal error in main():, ${message}`);
-  process.exit(1);
-}
-
-/**
- * Hook to intercept all command results before they are
- * sent back to the LLM. This is useful for logging
- * or modifying command results (not-implemented).
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-for await (const command of herokuRepl) {
-  // do nothing until logger is implemented
-}
+  /**
+   * Hook to intercept all command results before they are
+   * sent back to the LLM. This is useful for logging
+   * or modifying command results (not-implemented).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for await (const command of herokuRepl) {
+    // do nothing until logger is implemented
+  }
+};

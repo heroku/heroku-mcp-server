@@ -142,4 +142,40 @@ describe('HerokuREPL', () => {
       expect(repl['abortController'].signal.aborted).to.be.true;
     });
   });
+
+  describe('MCP startup error handling', () => {
+    it('should emit fatalError if spawn throws', () => {
+      spawnStub.restore();
+      const error = new Error('spawn failed');
+      const badSpawn = sinon.stub(HerokuREPL, 'spawn').throws(error);
+      const fatalSpy = sinon.spy();
+      const replWithError = new HerokuREPL(500);
+      replWithError.on('fatalError', fatalSpy);
+      // Force re-init to trigger error
+      replWithError['initializeProcess']();
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include('Startup error: spawn failed');
+      badSpawn.restore();
+    });
+
+    it('should emit fatalError if process emits error', () => {
+      const fatalSpy = sinon.spy();
+      repl.on('fatalError', fatalSpy);
+      const error = new Error('process error');
+      mockProcess.emit('error', error);
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include('Startup error: process error');
+    });
+
+    it('should emit fatalError if CLI outputs old version warning', () => {
+      const fatalSpy = sinon.spy();
+      repl.on('fatalError', fatalSpy);
+      mockProcess.stdout.emit('data', 'Warning: --repl is not a heroku command.');
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include('Your Heroku CLI version does not support --repl mode');
+    });
+  });
 });

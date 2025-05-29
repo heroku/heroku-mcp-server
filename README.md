@@ -4,6 +4,11 @@
 
 > The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
 
+## Prerequisites
+
+- **Heroku CLI** must be installed globally on your system, version **10.8.1 or higher**.
+  - [Install or upgrade the Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
+
 ## Deploy on Heroku
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://www.heroku.com/deploy?template=https://github.com/heroku/heroku-mcp-server)
@@ -23,6 +28,9 @@ Key Features:
 Note: The Heroku Platform MCP Server is currently in early development. As we continue to enhance and refine the
 implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
+
+> **Note:** The Heroku Platform MCP Server requires the Heroku CLI to be installed globally (v10.8.1+). Ensure you have
+> the correct version by running `heroku --version`.
 
 ## Authentication
 

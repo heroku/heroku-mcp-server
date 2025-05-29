@@ -1,10 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { EventEmitter } from 'node:events';
 import * as pjson from '../../package.json' with { type: 'json' };
-
-const heroku = path.parse(path.relative(process.cwd(), fileURLToPath(import.meta.resolve('heroku', import.meta.url))));
-const herokuRunPath = path.join(heroku.dir, '..', 'bin', 'run');
+import { handleCliOutput } from '../utils/handle-cli-output.js';
 
 type CommandQueueItem = { command: string; promise: Promise<string>; resolver: (value: string) => void };
 const COMMAND_END_RESULTS_MESSAGE = '<<<END RESULTS>>>';
@@ -31,7 +28,7 @@ const VERSION = pjson.default.version;
  *
  * This maintains a single Heroku CLI process.
  */
-export class HerokuREPL {
+export class HerokuREPL extends EventEmitter {
   public static spawn: typeof spawn = spawn;
   public isProcessingCommand: boolean = false;
   public isReady: boolean = false;
@@ -52,6 +49,7 @@ export class HerokuREPL {
    * @param commandTimeout the timeout for command execution
    */
   public constructor(commandTimeout = 15_000) {
+    super();
     this.commandTimeout = commandTimeout;
     this.pauseQueue();
     void this.initializeProcess();
@@ -130,21 +128,41 @@ export class HerokuREPL {
       this.process = undefined;
     }
 
-    this.process = HerokuREPL.spawn(herokuRunPath, [], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      signal: this.abortController.signal,
-      env: {
-        ...process.env,
-        HEROKU_MCP_MODE: 'true',
-        HEROKU_MCP_SERVER_VERSION: VERSION,
-        HEROKU_HEADERS: JSON.stringify({
-          'User-Agent': this.userAgent
-        })
-      }
+    try {
+      this.process = HerokuREPL.spawn('heroku', ['--repl'], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        signal: this.abortController.signal,
+        env: {
+          ...process.env,
+          HEROKU_MCP_MODE: 'true',
+          HEROKU_MCP_SERVER_VERSION: VERSION,
+          HEROKU_HEADERS: JSON.stringify({
+            'User-Agent': this.userAgent
+          })
+        }
+      });
+    } catch (err) {
+      // Emit MCP error and abort
+      this.emit('fatalError', handleCliOutput(`Startup error: ${(err as Error).message}`));
+      return;
+    }
+
+    this.process.once('error', (err: Error) => {
+      this.emit('fatalError', handleCliOutput(`Startup error: ${err.message}`));
     });
 
     this.process.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
+      // Detect old CLI warning and emit MCP error
+      if (output.includes('Warning: --repl is not a heroku command.')) {
+        this.emit(
+          'fatalError',
+          handleCliOutput(
+            'Startup error: Your Heroku CLI version does not support --repl mode. Please upgrade to the latest Heroku CLI.'
+          )
+        );
+        return;
+      }
       if (output.includes(READY_MESSAGE)) {
         this.isReady = true;
         this.pauseIteratorResolver?.();
