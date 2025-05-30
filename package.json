@@ -8,6 +8,9 @@
     "heroku-mcp-server": "bin/heroku-mcp-server.mjs"
   },
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@heroku/plugin-ai": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.8.0",
@@ -44,19 +47,6 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "exports": {
-    "./*": {
-      "import": "./dist/esm/*",
-      "require": "./dist/cjs/*"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "./dist/esm/*"
-      ]
-    }
   },
   "files": [
     "dist",
