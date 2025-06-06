@@ -236,6 +236,8 @@ Add this snippet to your Trae `mcp_settings.json`:
 - `list_addons` - List all add-ons for all apps or for a specific app.
 - `get_addon_info` - Get detailed information about a specific add-on.
 - `create_addon` - Provision a new add-on for an app.
+- `destroy_addon` - Destroy (delete) an add-on from a specified app. Parameters: `app` (Heroku app name), `addon`
+  (add-on identifier: name, UUID, or attachment name).
 
 ### Maintenance & Logs
 

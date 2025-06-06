@@ -9,6 +9,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@heroku/mcp-server": "^1.0.6",
     "@heroku/plugin-ai": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.8.0",
     "jsonschema": "^1.5.0",

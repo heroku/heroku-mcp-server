@@ -208,3 +208,39 @@ export const registerListAddonPlansTool = (server: McpServer, herokuRepl: Heroku
     }
   );
 };
+
+/**
+ * Schema for destroying a Heroku add-on.
+ */
+export const destroyAddonOptionsSchema = z.object({
+  app: z.string().describe('Target app for add-on destruction. Must have write access.'),
+  addon: z.string().describe('Add-on identifier: UUID, name (postgresql-curved-12345), or attachment name (DATABASE)')
+});
+
+/**
+ * Type definition for the options used when destroying an add-on.
+ */
+export type DestroyAddonOptions = z.infer<typeof destroyAddonOptionsSchema>;
+
+/**
+ * Registers the destroy_addon tool with the MCP server.
+ *
+ * @param server - The MCP server instance to register the tool with
+ * @param herokuRepl - The Heroku REPL instance for executing commands
+ */
+export const registerDestroyAddonTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+  server.tool(
+    'destroy_addon',
+    'Destroy (delete) an add-on from a specified app',
+    destroyAddonOptionsSchema.shape,
+    async (options: DestroyAddonOptions): Promise<McpToolResponse> => {
+      const command = new CommandBuilder(TOOL_COMMAND_MAP.DESTROY_ADDON)
+        .addFlags({ app: options.app, confirm: options.app })
+        .addPositionalArguments({ addon: options.addon })
+        .build();
+
+      const output = await herokuRepl.executeCommand(command);
+      return handleCliOutput(output);
+    }
+  );
+};
