@@ -5,6 +5,9 @@
   "keywords": ["node", "mcp", "heroku"],
   "buildpacks": [
     {
+      "url": "https://github.com/heroku/heroku-buildpack-cli"
+    },
+    {
       "url": "heroku/nodejs"
     }
   ],
