@@ -139,7 +139,7 @@ There are several benefits to configuring with `heroku mcp:start`:```
 }
 ```
 
-> **Note:** When you use `heroku mcp:start`, the server authenticates using your current Heroku CLI session. You do not
+> **Note:** When you use `heroku mcp:start`, the server authenticates using your current Heroku CLI session so you don't
 > need to set the `HEROKU_API_KEY` environment variable. If you prefer to use an API key, you can use the alternate
 > configuration below.
 
