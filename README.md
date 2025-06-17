@@ -38,7 +38,7 @@ You can configure Claude Desktop, Zed, Cursor, Windsurf and others to work with 
 
 ### Primary Configuration: Using `heroku mcp:start` (Heroku CLI v10.8.1+)
 
-Use the `heroku mcp:start` command to launch the Heroku Platform MCP Server. This method leverages your existing Heroku
+Use `heroku mcp:start` to launch the Heroku Platform MCP Server. We recommend this method as it leverages your existing Heroku
 CLI authentication, so you do not need to set the `HEROKU_API_KEY` environment variable. The `heroku mcp:start` command
 is available in Heroku CLI version 10.8.1 and later.
 
