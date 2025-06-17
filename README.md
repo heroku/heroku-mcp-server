@@ -143,7 +143,7 @@ is available in Heroku CLI version 10.8.1 and later.
 > need to set the `HEROKU_API_KEY` environment variable. If you prefer to use an API key, you can use the alternate
 > configuration below.
 
-### Alternate Configuration: Using `npx -y @heroku/mcp-server`
+### Configure the Heroku Platform MCP Server with `npx -y @heroku/mcp-server`
 
 You can also launch the Heroku Platform MCP Server using the `npx -y @heroku/mcp-server` command. This method requires
 you to set the `HEROKU_API_KEY` environment variable with your Heroku authorization token.
