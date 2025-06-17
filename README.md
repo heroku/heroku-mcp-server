@@ -146,7 +146,7 @@ There are several benefits to configuring with `heroku mcp:start`:```
 ### Configure the Heroku Platform MCP Server with `npx -y @heroku/mcp-server`
 
 You can also launch the Heroku Platform MCP Server using the `npx -y @heroku/mcp-server` command. This method requires
-you to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable with your Heroku authorization token.
+you to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable with your Heroku [authorization token](https://devcenter.heroku.com/articles/authentication#retrieving-the-api-token).
 
 #### Generating the `HEROKU_API_KEY`
 
