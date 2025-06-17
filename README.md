@@ -34,7 +34,7 @@ the future of this project.
 
 ## Configure the Heroku Platform MCP Server
 
-You can configure Claude Desktop, Zed, Cursor, Windsurf and others to work with the Heroku Platform MCP Server.
+You can configure Claude Desktop, Zed, Cursor, Windsurf, and other clients to work with the Heroku Platform MCP Server.
 
 ### Configure the Heroku Platform MCP Server with `heroku mcp:start` (Heroku CLI v10.8.1+)
 
