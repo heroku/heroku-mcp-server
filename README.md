@@ -45,7 +45,7 @@ is available in Heroku CLI version 10.8.1 and later.
 There are several benefits to configuring with `heroku mcp:start`:```
 
 - No need to manage or expose your Heroku API key
-- Uses your current Heroku CLI authentication context.
+- Uses your current Heroku CLI authentication context
 - Works seamlessly with all supported clients.
 
 #### Example configuration for [Claude Desktop](https://claude.ai/download):
