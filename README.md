@@ -29,8 +29,8 @@ Note: The Heroku Platform MCP Server is currently in early development. As we co
 implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
 
-> **Note:** The Heroku Platform MCP Server requires the Heroku CLI to be installed globally (v10.8.1+). Ensure you have
-> the correct version by running `heroku --version`.
+> **Note:** The [Heroku Platform MCP Server](https://devcenter.heroku.com/articles/heroku-mcp-server) requires the
+> Heroku CLI to be installed globally (v10.8.1+). Ensure you have the correct version by running `heroku --version`.
 
 ## Configure the Heroku Platform MCP Server
 
@@ -38,9 +38,10 @@ You can configure Claude Desktop, Zed, Cursor, Windsurf, and other clients to wo
 
 ### Configure the Heroku Platform MCP Server with `heroku mcp:start`
 
-Use `heroku mcp:start` to launch the Heroku Platform MCP Server. We recommend this method as it leverages your existing Heroku
-CLI authentication, so you don't need to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable. The `heroku mcp:start` command
-is available in Heroku CLI version 10.8.1 and later.
+Use `heroku mcp:start` to launch the Heroku Platform MCP Server. We recommend this method as it leverages your existing
+Heroku CLI authentication, so you don't need to set the
+[`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable. The
+`heroku mcp:start` command is available in Heroku CLI version 10.8.1 and later.
 
 There are several benefits to configuring with `heroku mcp:start`:```
 
@@ -140,13 +141,15 @@ There are several benefits to configuring with `heroku mcp:start`:```
 ```
 
 > **Note:** When you use `heroku mcp:start`, the server authenticates using your current Heroku CLI session so you don't
-> need to set the `HEROKU_API_KEY` environment variable. We recommend you use `heroku mcp:start`, but if you prefer to use an API key, you can use the alternate
-> configuration below.
+> need to set the `HEROKU_API_KEY` environment variable. We recommend you use `heroku mcp:start`, but if you prefer to
+> use an API key, you can use the alternate configuration below.
 
 ### Configure the Heroku Platform MCP Server with `npx -y @heroku/mcp-server`
 
 You can also launch the Heroku Platform MCP Server using the `npx -y @heroku/mcp-server` command. This method requires
-you to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable with your Heroku [authorization token](https://devcenter.heroku.com/articles/authentication#retrieving-the-api-token).
+you to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment
+variable with your Heroku
+[authorization token](https://devcenter.heroku.com/articles/authentication#retrieving-the-api-token).
 
 #### Generating the `HEROKU_API_KEY`
 
