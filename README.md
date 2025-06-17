@@ -43,7 +43,7 @@ Heroku CLI authentication, so you don't need to set the
 [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable. The
 `heroku mcp:start` command is available in Heroku CLI version 10.8.1 and later.
 
-There are several benefits to configuring with `heroku mcp:start`:```
+There are several benefits to configuring with `heroku mcp:start`:
 
 - No need to manage or expose your Heroku API key
 - Uses your current Heroku CLI authentication context
