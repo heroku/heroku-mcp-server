@@ -46,7 +46,7 @@ There are several benefits to configuring with `heroku mcp:start`:```
 
 - No need to manage or expose your Heroku API key
 - Uses your current Heroku CLI authentication context
-- Works seamlessly with all supported clients.
+- Works seamlessly with supported clients
 
 #### Example configuration for [Claude Desktop](https://claude.ai/download):
 
