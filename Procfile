@@ -1,1 +1,1 @@
-mcp-heroku: node dist/index.js
+mcp-heroku: heroku mcp:start

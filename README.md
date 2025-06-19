@@ -1,5 +1,6 @@
 # heroku-mcp-server
 
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=heroku&config=eyJjb21tYW5kIjoibnB4IC15IEBoZXJva3UvbWNwLXNlcnZlciIsImVudiI6eyJIRVJPS1VfQVBJX0tFWSI6IjxZT1VSX0hFUk9LVV9BVVRIX1RPS0VOPiJ9fQ%3D%3D)
 [![smithery badge](https://smithery.ai/badge/@heroku/heroku-mcp-server)](https://smithery.ai/server/@heroku/heroku-mcp-server)
 
 > The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
@@ -29,10 +30,129 @@ Note: The Heroku Platform MCP Server is currently in early development. As we co
 implementation, the available functionality and tools may evolve. We welcome feedback and contributions to help shape
 the future of this project.
 
-> **Note:** The Heroku Platform MCP Server requires the Heroku CLI to be installed globally (v10.8.1+). Ensure you have
-> the correct version by running `heroku --version`.
+> **Note:** The [Heroku Platform MCP Server](https://devcenter.heroku.com/articles/heroku-mcp-server) requires the
+> Heroku CLI to be installed globally (v10.8.1+). Ensure you have the correct version by running `heroku --version`.
 
-## Authentication
+## Configure the Heroku Platform MCP Server
+
+You can configure Claude Desktop, Zed, Cursor, Windsurf, and other clients to work with the Heroku Platform MCP Server.
+
+### Configure the Heroku Platform MCP Server with `heroku mcp:start`
+
+Use `heroku mcp:start` to launch the Heroku Platform MCP Server. We recommend this method as it leverages your existing
+Heroku CLI authentication, so you don't need to set the
+[`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment variable. The
+`heroku mcp:start` command is available in Heroku CLI version 10.8.1 and later.
+
+There are several benefits to configuring with `heroku mcp:start`:
+
+- No need to manage or expose your Heroku API key
+- Uses your current Heroku CLI authentication context
+- Works seamlessly with supported clients
+
+#### Example configuration for [Claude Desktop](https://claude.ai/download):
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "heroku mcp:start"
+    }
+  }
+}
+```
+
+#### Example configuration for [Zed](https://github.com/zed-industries/zed):
+
+```json
+{
+  "context_servers": {
+    "heroku": {
+      "command": {
+        "path": "heroku",
+        "args": ["mcp:start"]
+      }
+    }
+  }
+}
+```
+
+#### Example configuration for [Cursor](https://www.cursor.com/):
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "heroku mcp:start"
+    }
+  }
+}
+```
+
+#### Example configuration for [Windsurf](https://www.windsurf.com/):
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "heroku mcp:start"
+    }
+  }
+}
+```
+
+#### Example configuration for [Cline](https://cline.bot):
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "heroku mcp:start"
+    }
+  }
+}
+```
+
+#### Example configuration for [VSCode](https://code.visualstudio.com/):
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "heroku": {
+        "type": "stdio",
+        "command": "heroku",
+        "args": ["mcp:start"]
+      }
+    }
+  }
+}
+```
+
+#### Example configuration for [Trae](https://trae.ai):
+
+```json
+{
+  "mcpServers": {
+    "heroku": {
+      "command": "heroku mcp:start"
+    }
+  }
+}
+```
+
+> **Note:** When you use `heroku mcp:start`, the server authenticates using your current Heroku CLI session so you don't
+> need to set the `HEROKU_API_KEY` environment variable. We recommend you use `heroku mcp:start`, but if you prefer to
+> use an API key, you can use the alternate configuration below.
+
+### Configure the Heroku Platform MCP Server with `npx -y @heroku/mcp-server`
+
+You can also launch the Heroku Platform MCP Server using the `npx -y @heroku/mcp-server` command. This method requires
+you to set the [`HEROKU_API_KEY`](https://devcenter.heroku.com/articles/heroku-mcp-server#authentication) environment
+variable with your Heroku
+[authorization token](https://devcenter.heroku.com/articles/authentication#retrieving-the-api-token).
+
+#### Generating the `HEROKU_API_KEY`
 
 Generate a Heroku authorization token with one of these methods:
 
@@ -55,13 +175,7 @@ Generate a Heroku authorization token with one of these methods:
   2. Open the Applications tab.
   3. Next to **Authorizations**, click **Create authorization**.
 
-## Configure the Heroku Platform MCP Server
-
-You can configure Claude Desktop, Zed, Cursor, Windsurf and others to work with the Heroku Platform MCP Server.
-
-### [Claude Desktop](https://claude.ai/download)
-
-Add this snippet to your `claude_desktop_config.json`:
+#### Example configuration for [Claude Desktop](https://claude.ai/download):
 
 ```json
 {
@@ -77,9 +191,7 @@ Add this snippet to your `claude_desktop_config.json`:
 }
 ```
 
-### [Zed](https://github.com/zed-industries/zed)
-
-Add this snippet to your Zed `settings.json`:
+#### Example configuration for [Zed](https://github.com/zed-industries/zed):
 
 ```json
 {
@@ -97,14 +209,7 @@ Add this snippet to your Zed `settings.json`:
 }
 ```
 
-### [Cursor](https://www.cursor.com/)
-
-> **Note:** Both the simple and explicit forms work, but the key should be `"heroku"` (not `"heroku-mcp-server"`) for
-> maximum compatibility with agent tools.
-
-Add this snippet to your Cursor `mcp.json`:
-
-**Simple form:**
+#### Example configuration for [Cursor](https://www.cursor.com/):
 
 ```json
 {
@@ -119,7 +224,7 @@ Add this snippet to your Cursor `mcp.json`:
 }
 ```
 
-**Explicit form:**
+#### Example configuration for [Windsurf](https://www.windsurf.com/):
 
 ```json
 {
@@ -135,9 +240,7 @@ Add this snippet to your Cursor `mcp.json`:
 }
 ```
 
-### [Windsurf](https://www.windsurf.com/)
-
-Add this snippet to your Windsurf `mcp_config.json`:
+#### Example configuration for [Cline](https://cline.bot):
 
 ```json
 {
@@ -153,27 +256,7 @@ Add this snippet to your Windsurf `mcp_config.json`:
 }
 ```
 
-### [Cline](https://cline.bot)
-
-Add this snippet to your Cline `config.json`:
-
-```json
-{
-  "mcpServers": {
-    "heroku": {
-      "command": "npx",
-      "args": ["-y", "@heroku/mcp-server"],
-      "env": {
-        "HEROKU_API_KEY": "<YOUR_HEROKU_AUTH_TOKEN>"
-      }
-    }
-  }
-}
-```
-
-### [VSCode](https://code.visualstudio.com/)
-
-Add this snippet to your VSCode `settings.json` or `.vscode/mcp.json`:
+#### Example configuration for [VSCode](https://code.visualstudio.com/):
 
 ```json
 {
@@ -192,9 +275,7 @@ Add this snippet to your VSCode `settings.json` or `.vscode/mcp.json`:
 }
 ```
 
-### [Trae](https://trae.ai)
-
-Add this snippet to your Trae `mcp_settings.json`:
+#### Example configuration for [Trae](https://trae.ai):
 
 ```json
 {
@@ -209,6 +290,9 @@ Add this snippet to your Trae `mcp_settings.json`:
   }
 }
 ```
+
+> **Note:** When you use `npx -y @heroku/mcp-server`, you must set the `HEROKU_API_KEY` environment variable with your
+> Heroku authorization token.
 
 ## Available Tools
 
