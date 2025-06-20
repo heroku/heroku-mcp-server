@@ -8,11 +8,13 @@ import {
   createAddonOptionsSchema,
   listAddonServicesOptionsSchema,
   listAddonPlansOptionsSchema,
+  destroyAddonOptionsSchema,
   registerListAddonsTool,
   registerGetAddonInfoTool,
   registerCreateAddonTool,
   registerListAddonServicesTool,
-  registerListAddonPlansTool
+  registerListAddonPlansTool,
+  registerDestroyAddonTool
 } from './addons.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
@@ -324,6 +326,61 @@ describe('addons topic tools', () => {
       expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
+      });
+    });
+  });
+
+  describe('registerDestroyAddonTool', () => {
+    let server: sinon.SinonStubbedInstance<McpServer>;
+    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let toolCallback: Function;
+
+    beforeEach(() => {
+      server = sinon.createStubInstance(McpServer);
+      herokuRepl = sinon.createStubInstance(HerokuREPL);
+
+      server.tool.callsFake((_name, _description, _schema, callback) => {
+        toolCallback = callback;
+        return server;
+      });
+
+      registerDestroyAddonTool(server, herokuRepl);
+    });
+
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('registers the tool with correct name and schema', () => {
+      expect(server.tool.calledOnce).to.be.true;
+      const call = server.tool.getCall(0);
+      expect(call.args[0]).to.equal('destroy_addon');
+      expect(call.args[2]).to.deep.equal(destroyAddonOptionsSchema.shape);
+    });
+
+    it('executes command successfully with required options', async () => {
+      const expectedOutput = 'Destroying postgresql-curved-12345 on test-app... done\n';
+      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.DESTROY_ADDON)
+        .addFlags({ app: 'test-app', confirm: 'test-app' })
+        .addPositionalArguments({ addon: 'postgresql-curved-12345' })
+        .build();
+
+      herokuRepl.executeCommand.resolves(expectedOutput);
+
+      const result = await toolCallback({ app: 'test-app', addon: 'postgresql-curved-12345' }, {});
+      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: expectedOutput }]
+      });
+    });
+
+    it('handles errors from the Heroku CLI', async () => {
+      const errorOutput = " ▸    Couldn't find that add-on.";
+      herokuRepl.executeCommand.resolves(errorOutput);
+
+      const result = await toolCallback({ app: 'test-app', addon: 'nonexistent-addon' }, {});
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: errorOutput }]
       });
     });
   });

@@ -24,6 +24,7 @@ export const TOOL_COMMAND_MAP = {
   LIST_ADDONS: 'addons',
   GET_ADDON_INFO: 'addons:info',
   CREATE_ADDON: 'addons:create',
+  DESTROY_ADDON: 'addons:destroy',
   LIST_ADDON_SERVICES: 'addons:services',
   LIST_ADDON_PLANS: 'addons:plans',
 

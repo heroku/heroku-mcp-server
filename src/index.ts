@@ -55,6 +55,7 @@ teams.registerListTeamsTool(server, herokuRepl);
 addons.registerListAddonsTool(server, herokuRepl);
 addons.registerGetAddonInfoTool(server, herokuRepl);
 addons.registerCreateAddonTool(server, herokuRepl);
+addons.registerDestroyAddonTool(server, herokuRepl);
 addons.registerListAddonServicesTool(server, herokuRepl);
 addons.registerListAddonPlansTool(server, herokuRepl);
 

@@ -9,6 +9,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@heroku/mcp-server": "^1.0.6",
     "@heroku/plugin-ai": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.8.0",
     "jsonschema": "^1.5.0",
@@ -19,7 +20,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.23.0",
-    "@modelcontextprotocol/inspector": "^0.7.0",
+    "@modelcontextprotocol/inspector": "^0.14.3",
     "@types/chai": "^5.2.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
