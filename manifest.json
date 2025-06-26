@@ -1,0 +1,77 @@
+{
+  "dxt_version": "0.1",
+  "name": "heroku-mcp-server",
+  "display_name": "Heroku Platform MCP Server",
+  "version": "1.0.6",
+  "description": "Heroku Platform MCP Server: Secure, LLM-driven management of Heroku resources via the Model Context Protocol.",
+  "long_description": "The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.\n\nKey Features:\n- Direct interaction with Heroku Platform resources through LLM-driven tools\n- Secure and authenticated access to Heroku Platform APIs, leveraging the Heroku CLI\n- Natural language interface for Heroku Platform interactions\n\nAvailable tools include: app management, dyno/process management, add-ons, maintenance, logs, pipelines, teams, spaces, and PostgreSQL database management. See documentation for full details.",
+  "author": {
+    "name": "Heroku"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heroku/heroku-mcp-server"
+  },
+  "homepage": "https://github.com/heroku/heroku-mcp-server",
+  "documentation": "https://github.com/heroku/heroku-mcp-server#readme",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "bin/heroku-mcp-server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/bin/heroku-mcp-server.mjs"],
+      "env": {
+        "MCP_SERVER_REQUEST_TIMEOUT": "${user_config.MCP_SERVER_REQUEST_TIMEOUT}"
+      }
+    }
+  },
+  "user_config": {
+    "MCP_SERVER_REQUEST_TIMEOUT": {
+      "type": "number",
+      "title": "MCP Server Request Timeout (ms)",
+      "description": "Timeout in milliseconds for command execution. Defaults to 15000 (15 seconds) if not set.",
+      "required": false,
+      "default": 15000
+    }
+  },
+  "tools": [
+    { "name": "list_apps", "description": "List all Heroku apps. Filter by personal, collaborator, team, or space." },
+    {
+      "name": "get_app_info",
+      "description": "Get detailed information about an app, including configuration, dynos, and add-ons."
+    },
+    { "name": "create_app", "description": "Create a new app with customizable settings for region, team, and space." },
+    { "name": "rename_app", "description": "Rename an existing app." },
+    { "name": "deploy_to_heroku", "description": "Deploy projects to Heroku with an app.json configuration." },
+    {
+      "name": "deploy_one_off_dyno",
+      "description": "Execute code or commands in a sandboxed environment on a Heroku one-off dyno."
+    },
+    { "name": "ps_list", "description": "List all dynos for an app." },
+    { "name": "ps_scale", "description": "Scale the number of dynos up or down, or resize dynos." },
+    { "name": "ps_restart", "description": "Restart specific dynos, process types, or all dynos." },
+    { "name": "list_addons", "description": "List all add-ons for all apps or for a specific app." },
+    { "name": "get_addon_info", "description": "Get detailed information about a specific add-on." },
+    { "name": "create_addon", "description": "Provision a new add-on for an app." },
+    { "name": "maintenance_on", "description": "Enable maintenance mode for an app." },
+    { "name": "maintenance_off", "description": "Disable maintenance mode for an app." },
+    { "name": "get_app_logs", "description": "View application logs." },
+    { "name": "pipelines_create", "description": "Create a new pipeline." },
+    { "name": "pipelines_promote", "description": "Promote apps to the next stage in a pipeline." },
+    { "name": "pipelines_list", "description": "List available pipelines." },
+    { "name": "pipelines_info", "description": "Get detailed pipeline information." },
+    { "name": "list_teams", "description": "List teams you belong to." },
+    { "name": "list_private_spaces", "description": "List available spaces." },
+    { "name": "pg_psql", "description": "Execute SQL queries against the Heroku PostgreSQL database." },
+    { "name": "pg_info", "description": "Display detailed database information." },
+    { "name": "pg_ps", "description": "View active queries and execution details." },
+    { "name": "pg_locks", "description": "View database locks and identify blocking transactions." },
+    { "name": "pg_outliers", "description": "Identify resource-intensive queries." },
+    { "name": "pg_credentials", "description": "Manage database credentials and access." },
+    { "name": "pg_kill", "description": "Terminate specific database processes." },
+    { "name": "pg_maintenance", "description": "Show database maintenance information." },
+    { "name": "pg_backups", "description": "Manage database backups and schedules." },
+    { "name": "pg_upgrade", "description": "Upgrade PostgreSQL to a newer version." }
+  ]
+}

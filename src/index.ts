@@ -19,7 +19,21 @@ import { HerokuREPL } from './repl/heroku-cli-repl.js';
 
 const VERSION = pjson.default.version;
 
-const server = new McpServer({ name: 'Heroku MCP Server', version: VERSION });
+const server = new McpServer(
+  { name: 'Heroku MCP Server', version: VERSION },
+  {
+    capabilities: {
+      tools: {
+        list: {
+          description: 'List all tools',
+          parameters: {
+            type: 'object'
+          }
+        }
+      }
+    }
+  }
+);
 const requestTimeout = isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT))
   ? 15_000
   : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT);
@@ -36,7 +50,6 @@ apps.registerListAppsTool(server, herokuRepl);
 apps.registerGetAppInfoTool(server, herokuRepl);
 apps.registerCreateAppTool(server, herokuRepl);
 apps.registerRenameAppTool(server, herokuRepl);
-apps.registerTransferAppTool(server, herokuRepl);
 
 // Maintenance mode tools
 maintenance.registerMaintenanceOnTool(server, herokuRepl);
