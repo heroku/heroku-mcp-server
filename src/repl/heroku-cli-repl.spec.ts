@@ -178,4 +178,207 @@ describe('HerokuREPL', () => {
       expect(mcpError.content[0].text).to.include('Your Heroku CLI version does not support --repl mode');
     });
   });
+
+  describe('getHerokuCliCommandAndArgs', () => {
+    let spawnSyncStub: sinon.SinonStub;
+    let fatalSpy: sinon.SinonSpy;
+
+    beforeEach(() => {
+      spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync');
+      fatalSpy = sinon.spy();
+      repl.on('fatalError', fatalSpy);
+    });
+
+    afterEach(() => {
+      spawnSyncStub.restore();
+    });
+
+    it('should return npx command when npx is available', () => {
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: '9.8.1'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.deep.equal({
+        cliCommand: 'npx',
+        cliArgs: ['-y', 'heroku@latest', '--repl']
+      });
+      expect(fatalSpy.called).to.be.false;
+    });
+
+    it('should return heroku command when npx is not available but heroku CLI >= 10.10.0 is available', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI available with version >= 10.10.0
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/10.15.0 (darwin-x64) node-v18.17.0'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.deep.equal({
+        cliCommand: 'heroku',
+        cliArgs: ['--repl']
+      });
+      expect(fatalSpy.called).to.be.false;
+    });
+
+    it('should return heroku command when npx is not available but heroku CLI > 10.x is available', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI available with version > 10.x
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/11.0.0 (darwin-x64) node-v18.17.0'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.deep.equal({
+        cliCommand: 'heroku',
+        cliArgs: ['--repl']
+      });
+      expect(fatalSpy.called).to.be.false;
+    });
+
+    it('should emit fatalError and return null when npx is not available and heroku CLI < 10.10.0 is available', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI available but version < 10.10.0
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/10.9.0 (darwin-x64) node-v18.17.0'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include('Startup error: Heroku CLI version 10.10.0 or higher is required');
+      expect(mcpError.content[0].text).to.include('Detected version: 10.9.0');
+    });
+
+    it('should emit fatalError and return null when npx is not available and heroku CLI is not available', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI not available
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: new Error('heroku not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include(
+        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
+      );
+    });
+
+    it('should emit fatalError and return null when npx is not available and heroku CLI version format is unexpected', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI available but version format is unexpected
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: 'some unexpected output without version'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include(
+        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
+      );
+    });
+
+    it('should emit fatalError and return null when npx is not available and heroku CLI returns error', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI returns error
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: new Error('heroku command failed'),
+        status: 1,
+        stdout: ''
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include(
+        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
+      );
+    });
+
+    it('should emit fatalError and return null when npx is not available and heroku CLI stdout is not a string', () => {
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      // heroku CLI available but stdout is not a string
+      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+        error: null,
+        status: 0,
+        stdout: Buffer.from('heroku/10.15.0')
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include(
+        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
+      );
+    });
+  });
 });

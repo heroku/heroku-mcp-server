@@ -7,12 +7,10 @@ import {
   getAppInfoOptionsSchema,
   createAppOptionsSchema,
   renameAppOptionsSchema,
-  transferAppOptionsSchema,
   registerListAppsTool,
   registerGetAppInfoTool,
   registerCreateAppTool,
-  registerRenameAppTool,
-  registerTransferAppTool
+  registerRenameAppTool
 } from './apps.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
@@ -317,51 +315,6 @@ describe('apps topic tools', () => {
     });
   });
 
-  describe('registerTransferAppTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
-    let toolCallback: Function;
-
-    beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerTransferAppTool(server, herokuRepl);
-    });
-
-    afterEach(() => {
-      sinon.restore();
-    });
-
-    it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
-      expect(call.args[0]).to.equal('transfer_app');
-      expect(call.args[2]).to.deep.equal(transferAppOptionsSchema.shape);
-    });
-
-    it('executes command successfully', async () => {
-      const expectedOutput = 'Initiating transfer of test-app to user@example.com... email sent\n';
-      const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.TRANSFER_APP)
-        .addFlags({ app: 'test-app' })
-        .addPositionalArguments({ recipient: 'user@example.com' })
-        .build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
-
-      const result = await toolCallback({ app: 'test-app', recipient: 'user@example.com' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(result).to.deep.equal({
-        content: [{ type: 'text', text: expectedOutput }]
-      });
-    });
-  });
-
   // Common error handling test for all tools
   describe('error handling', () => {
     let server: sinon.SinonStubbedInstance<McpServer>;
@@ -392,8 +345,7 @@ describe('apps topic tools', () => {
         { register: registerListAppsTool, options: {} },
         { register: registerGetAppInfoTool, options: { app: 'test-app' } },
         { register: registerCreateAppTool, options: { app: 'test-app' } },
-        { register: registerRenameAppTool, options: { app: 'old-app', newName: 'new-app' } },
-        { register: registerTransferAppTool, options: { app: 'test-app', recipient: 'user@example.com' } }
+        { register: registerRenameAppTool, options: { app: 'old-app', newName: 'new-app' } }
       ];
 
       for (const tool of tools) {

@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess, spawnSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import * as pjson from '../../package.json' with { type: 'json' };
 import { handleCliOutput } from '../utils/handle-cli-output.js';
@@ -30,6 +30,7 @@ const VERSION = pjson.default.version;
  */
 export class HerokuREPL extends EventEmitter {
   public static spawn: typeof spawn = spawn;
+  public static spawnSync: typeof spawnSync = spawnSync;
   public isProcessingCommand: boolean = false;
   public isReady: boolean = false;
 
@@ -108,6 +109,53 @@ export class HerokuREPL extends EventEmitter {
   }
 
   /**
+   * Determines the appropriate CLI command and arguments to use for spawning the Heroku REPL process.
+   * Checks for npx first, then falls back to heroku CLI >= 10.10.0 if available.
+   * Emits a fatalError and returns null if neither is available.
+   *
+   * @returns An object with cliCommand and cliArgs, or null if neither CLI is available.
+   */
+  private getHerokuCliCommandAndArgs(): { cliCommand: string; cliArgs: string[] } | null {
+    // Check for npx presence
+    const npxCheck = HerokuREPL.spawnSync('npx', ['--version'], { encoding: 'utf-8' });
+    if (!npxCheck.error && npxCheck.status === 0) {
+      return { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', '--repl'] };
+    } else {
+      // Fallback: check for heroku CLI and version
+      const herokuCheck = HerokuREPL.spawnSync('heroku', ['version'], { encoding: 'utf-8' });
+      if (
+        !herokuCheck.error &&
+        herokuCheck.status === 0 &&
+        typeof herokuCheck.stdout === 'string' &&
+        /heroku\/(\d+\.\d+\.\d+)/.test(herokuCheck.stdout)
+      ) {
+        const versionMatch = herokuCheck.stdout.match(/heroku\/(\d+\.\d+\.\d+)/);
+        if (versionMatch) {
+          const [major, minor] = versionMatch[1].split('.').map(Number);
+          if (major > 10 || (major === 10 && minor >= 10)) {
+            return { cliCommand: 'heroku', cliArgs: ['--repl'] };
+          } else {
+            this.emit(
+              'fatalError',
+              handleCliOutput(
+                `Startup error: Heroku CLI version 10.10.0 or higher is required for this MCP server. Detected version: ${versionMatch[1]}`
+              )
+            );
+            return null;
+          }
+        }
+      }
+      this.emit(
+        'fatalError',
+        handleCliOutput(
+          'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available in your PATH. Please install one of them.'
+        )
+      );
+      return null;
+    }
+  }
+
+  /**
    * Initializes the Heroku CLI process in REPL mode and sets up
    * event listeners for stdout and stderr.
    *
@@ -122,6 +170,12 @@ export class HerokuREPL extends EventEmitter {
       return;
     }
 
+    const cliInfo = this.getHerokuCliCommandAndArgs();
+    if (!cliInfo) {
+      return;
+    }
+    const { cliCommand, cliArgs } = cliInfo;
+
     if (this.process) {
       this.process.removeAllListeners();
       this.process.kill();
@@ -129,7 +183,7 @@ export class HerokuREPL extends EventEmitter {
     }
 
     try {
-      this.process = HerokuREPL.spawn('heroku', ['--repl'], {
+      this.process = HerokuREPL.spawn(cliCommand, cliArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
         signal: this.abortController.signal,
         env: {
