@@ -13,7 +13,7 @@
     "url": "https://github.com/heroku/heroku-mcp-server"
   },
   "homepage": "https://github.com/heroku/heroku-mcp-server",
-  "documentation": "https://github.com/heroku/heroku-mcp-server#readme",
+  "documentation": "https://devcenter.heroku.com/articles/heroku-mcp-server",
   "icon": "icon.png",
   "server": {
     "type": "node",
