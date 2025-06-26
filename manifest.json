@@ -4,7 +4,7 @@
   "display_name": "Heroku Platform MCP Server",
   "version": "1.0.6",
   "description": "Heroku Platform MCP Server: Secure, LLM-driven management of Heroku resources via the Model Context Protocol.",
-  "long_description": "The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.\n\nKey Features:\n- Direct interaction with Heroku Platform resources through LLM-driven tools\n- Secure and authenticated access to Heroku Platform APIs, leveraging the Heroku CLI\n- Natural language interface for Heroku Platform interactions\n\nAvailable tools include: app management, dyno/process management, add-ons, maintenance, logs, pipelines, teams, spaces, and PostgreSQL database management. See documentation for full details.",
+  "long_description": "The Heroku Platform MCP Server is a specialized Model Context Protocol (MCP) implementation designed to facilitate seamless interaction between large language models (LLMs) and the Heroku Platform. This server provides a robust set of tools and capabilities that enable LLMs to read, manage, and operate Heroku Platform resources.\n\nKey Features:\n- Direct interaction with Heroku Platform resources through LLM-driven tools\n- Secure and authenticated access to Heroku Platform APIs, leveraging the Heroku CLI\n- Natural language interface for Heroku Platform interactions\n\n See documentation for full details.",
   "author": {
     "name": "Heroku"
   },
