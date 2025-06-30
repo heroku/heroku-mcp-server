@@ -14,8 +14,10 @@ import * as pipelines from './tools/pipelines.js';
 import * as deployToHeroku from './tools/deploy-to-heroku.js';
 import * as logs from './tools/logs.js';
 import * as ai from './tools/ai.js';
+import * as devCenterResource from './resources/dev-center-resource.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
+import { DevCenterCrawlerService } from './services/dev-center-crawler-service.js';
 
 const VERSION = pjson.default.version;
 
@@ -89,6 +91,13 @@ deployToHeroku.registerDeployOneOffDynoTool(server);
 ai.registerListAiAvailableModelsTool(server, herokuRepl);
 ai.registerProvisionAiModelTool(server, herokuRepl);
 ai.registerMakeAiInferenceTool(server, herokuRepl);
+
+// Register the Dev Center resource
+devCenterResource.registerDevCenterResource(server);
+
+// Start Dev Center crawler in the background (does not block startup)
+const devCenterCrawler = new DevCenterCrawlerService();
+devCenterCrawler.crawlInBackground();
 
 /**
  * Run the server
