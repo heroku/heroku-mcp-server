@@ -78,6 +78,7 @@
     "build": "rm -rf dist && tsc -p tsconfig.json && npm run exec-perms",
     "build:dev": "rm -rf dist && tsc --sourceMap -p tsconfig.json && npm run exec-perms",
     "build:watch": "tsc --sourceMap -p tsconfig.json -w",
+    "build:dxt": "npx @anthropic-ai/dxt pack",
     "start:dev": "npm run build:dev && npm link && npx @modelcontextprotocol/inspector heroku-mcp-server",
     "start": "node dist/index.js",
     "format": "prettier . --write --config ./.prettier.mjs",
@@ -87,6 +88,7 @@
     "pretest": "npm run build",
     "test": "nyc mocha --forbid-only --loader=ts-node/esm",
     "exec-perms": "shx chmod +x dist/*.js",
-    "test:watch": "nyc mocha --watch --forbid-only"
+    "test:watch": "nyc mocha --watch --forbid-only",
+    "publish": "npm run build && npm run build:dxt && npm publish"
   }
 }

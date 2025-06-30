@@ -164,39 +164,3 @@ export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL)
     }
   );
 };
-
-/**
- * Schema for app ownership transfer
- */
-export const transferAppOptionsSchema = z.object({
-  app: z.string().describe('App to transfer. Requires owner/admin access'),
-  recipient: z.string().describe('Target user email or team name')
-});
-
-/**
- * Type for app transfer options
- */
-export type TransferAppOptions = z.infer<typeof transferAppOptionsSchema>;
-
-/**
- * Register transfer_app tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerTransferAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
-  server.tool(
-    'transfer_app',
-    'Transfer app ownership to user/team',
-    transferAppOptionsSchema.shape,
-    async (options: TransferAppOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.TRANSFER_APP)
-        .addFlags({ app: options.app })
-        .addPositionalArguments({ recipient: options.recipient })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
-    }
-  );
-};
