@@ -8,7 +8,7 @@ import { DevCenterCrawlerService } from '../services/dev-center-crawler-service.
  * @param server - The MCP server instance
  */
 export function registerDevCenterResource(server: McpServer): void {
-  const DEV_CENTER_RESOURCE_URI = process.env.DEV_CENTER_RESOURCE_URI || 'file:///tmp/llms.txt';
+  const DEV_CENTER_RESOURCE_URI = process.env.DEV_CENTER_RESOURCE_URI ?? 'file:///tmp/llms.txt';
   const devCenterCrawler = new DevCenterCrawlerService();
 
   server.resource(
@@ -27,7 +27,7 @@ export function registerDevCenterResource(server: McpServer): void {
             '[No Dev Center crawl data available yet. The background crawler may still be running or has not completed.]';
         }
       } catch (err) {
-        text = `[Error reading Dev Center crawl data: ${(err as Error)?.message || err}]`;
+        text = `[Error reading Dev Center crawl data: ${(err as Error)?.message || String(err)}]`;
       }
 
       return {

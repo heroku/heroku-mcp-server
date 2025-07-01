@@ -1,6 +1,6 @@
+import { promises as fs } from 'node:fs';
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
-import { promises as fs } from 'fs';
 
 /**
  * Service for crawling the Heroku Dev Center and caching results to a file.
@@ -14,26 +14,25 @@ import { promises as fs } from 'fs';
  *   const data = await crawler.loadCache();
  */
 export class DevCenterCrawlerService {
-  static readonly DEV_CENTER_ROOT = 'https://devcenter.heroku.com/';
-  static readonly CACHE_FILE = process.env.DEV_CENTER_CACHE_FILE || '/tmp/llms.txt';
+  public static readonly DEV_CENTER_ROOT = 'https://devcenter.heroku.com/';
+  public static readonly CACHE_FILE = process.env.DEV_CENTER_CACHE_FILE ?? '/tmp/llms.txt';
 
   /**
    * Triggers a crawl in the background. Does not block.
    */
   public crawlInBackground(): void {
     this.triggerCrawl().catch((err) => {
-      console.log(`[DevCenterCrawler] Crawl failed: ${(err as Error)?.message || err}\n`);
+      process.stderr.write(`[DevCenterCrawler] Crawl failed: ${(err as Error)?.message || err}\n`);
     });
   }
 
   /**
    * Triggers a crawl and persists results to the cache file.
-   * Returns a summary string of the crawl.
+   *
+   * @returns A summary string of the crawl.
    */
   public async triggerCrawl(): Promise<string> {
-    //console.log(`[DevCenterCrawler] Starting crawl...\n`);
     const summary = await this.crawlDevCenter();
-    //console.log(`[DevCenterCrawler] Crawl completed. Summary length: ${summary.length} characters\n`);
 
     // Save only the article summaries (without stats) to file for resource access
     const articleSummaries = summary.replace(/\n\n---\nCrawl Summary:.*$/, '');
@@ -43,40 +42,41 @@ export class DevCenterCrawlerService {
 
   /**
    * Loads the cached crawl data from the file.
+   *
+   * @returns The cached crawl data as a string, or an empty string if not found.
    */
   public async loadCache(): Promise<string> {
     try {
       const content = await fs.readFile(DevCenterCrawlerService.CACHE_FILE, 'utf8');
-      //console.log(`[DevCenterCrawler] Loaded cache file: ${DevCenterCrawlerService.CACHE_FILE} (${content.length} characters)\n`);
       return content;
-    } catch (err) {
-      //console.log(`[DevCenterCrawler] Failed to load cache: ${(err as Error)?.message || err}\n`);
+    } catch {
       return '';
     }
   }
 
   /**
    * Saves the crawl summary to the cache file.
+   *
+   * @param data - The data to save to the cache.
+   * @returns Resolves when the cache is saved.
    */
   protected async saveCache(data: string): Promise<void> {
     try {
-      //console.log(`[DevCenterCrawler] Saving cache to: ${DevCenterCrawlerService.CACHE_FILE}\n`);
-      //console.log(`[DevCenterCrawler] Data to save: ${data.length} characters\n`);
       await fs.writeFile(DevCenterCrawlerService.CACHE_FILE, data, 'utf8');
-      //console.log(`[DevCenterCrawler] Cache saved successfully\n`);
     } catch (err) {
-      //console.log(`[DevCenterCrawler] Failed to save cache: ${(err as Error)?.message || err}\n`);
+      process.stderr.write(`[DevCenterCrawler] Error saving cache: ${String(err)}\n`);
     }
   }
 
   /**
    * Crawls the Dev Center root and a limited set of linked articles, returning a summary.
-   * This is optimized for speed and minimal load.
+   *
+   * @returns The summary of crawled articles.
    */
   protected async crawlDevCenter(): Promise<string> {
     const rootHtml = await this.fetchHtml(DevCenterCrawlerService.DEV_CENTER_ROOT);
     const $ = cheerio.load(rootHtml);
-    const articles: { title: string; url: string }[] = [];
+    const articles: Array<{ title: string; url: string }> = [];
 
     // Find main article links (limit to 20 for speed)
     $('a[href^="/articles/"]')
@@ -95,8 +95,6 @@ export class DevCenterCrawlerService {
 
     // Fetch and summarize each article (limit to 20)
     const summaries: string[] = [];
-    let successCount = 0;
-    let errorCount = 0;
 
     for (const article of articles) {
       try {
@@ -128,7 +126,6 @@ export class DevCenterCrawlerService {
         for (const selector of contentSelectors) {
           contentContainer = $a(selector);
           if (contentContainer.length > 0) {
-            //console.log(`[DevCenterCrawler] Using content selector: ${selector} for ${article.title}\n`);
             break;
           }
         }
@@ -149,20 +146,13 @@ export class DevCenterCrawlerService {
             .get();
           const validParagraphs = paragraphs.filter((p) => p.length > 0);
           firstPara = validParagraphs.join('\n\n');
-          //console.log(`[DevCenterCrawler] Using fallback paragraph extraction for ${article.title}\n`);
         }
 
         if (heading && firstPara) {
           summaries.push(`# ${heading}\n${firstPara}\nURL: ${article.url}\n`);
-          successCount++;
-        } else {
-          //console.log(`[DevCenterCrawler] Article has no content: ${article.url}\n`);
-          errorCount++;
         }
       } catch (err) {
-        const errorMsg = (err as Error)?.message || String(err);
-        //console.log(`[DevCenterCrawler] Failed to fetch article "${article.title}": ${article.url} - ${errorMsg}\n`);
-        errorCount++;
+        process.stderr.write(`[DevCenterCrawler] Error: ${String(err)}\n`);
       }
     }
 
@@ -174,10 +164,13 @@ export class DevCenterCrawlerService {
 
   /**
    * Fetches HTML from a URL.
+   *
+   * @param url - The URL to fetch.
+   * @returns The HTML content as a string.
    */
   protected async fetchHtml(url: string): Promise<string> {
     const res = await fetch(url, { headers: { 'User-Agent': 'Heroku-MCP-DevCenterCrawler/1.0' } });
     if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-    return await res.text();
+    return res.text();
   }
 }
