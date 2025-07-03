@@ -14,6 +14,7 @@ import * as pipelines from './tools/pipelines.js';
 import * as deployToHeroku from './tools/deploy-to-heroku.js';
 import * as logs from './tools/logs.js';
 import * as ai from './tools/ai.js';
+import * as devCenterResource from './resources/dev-center-resource.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
 
@@ -102,6 +103,9 @@ deployToHeroku.registerDeployOneOffDynoTool(server);
 ai.registerListAiAvailableModelsTool(server, herokuRepl);
 ai.registerProvisionAiModelTool(server, herokuRepl);
 ai.registerMakeAiInferenceTool(server, herokuRepl);
+
+// Register the Dev Center resource
+devCenterResource.registerDevCenterResource(server);
 
 /**
  * Run the server
