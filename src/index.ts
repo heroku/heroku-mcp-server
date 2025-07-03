@@ -17,7 +17,6 @@ import * as ai from './tools/ai.js';
 import * as devCenterResource from './resources/dev-center-resource.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
-import { DevCenterCrawlerService } from './services/dev-center-crawler-service.js';
 
 const VERSION = pjson.default.version;
 
@@ -107,10 +106,6 @@ ai.registerMakeAiInferenceTool(server, herokuRepl);
 
 // Register the Dev Center resource
 devCenterResource.registerDevCenterResource(server);
-
-// Start Dev Center crawler in the background (does not block startup)
-const devCenterCrawler = new DevCenterCrawlerService();
-devCenterCrawler.crawlInBackground();
 
 /**
  * Run the server

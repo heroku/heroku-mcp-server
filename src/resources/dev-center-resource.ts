@@ -1,5 +1,4 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { DevCenterCrawlerService } from '../services/dev-center-crawler-service.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 /**
  * Registers the Heroku Dev Center resource with the MCP server.
@@ -8,8 +7,7 @@ import { DevCenterCrawlerService } from '../services/dev-center-crawler-service.
  * @param server - The MCP server instance
  */
 export function registerDevCenterResource(server: McpServer): void {
-  const DEV_CENTER_RESOURCE_URI = process.env.DEV_CENTER_RESOURCE_URI ?? 'file:///tmp/llms.txt';
-  const devCenterCrawler = new DevCenterCrawlerService();
+  const DEV_CENTER_RESOURCE_URI = 'https://devcenter.heroku.com/llms.txt';
 
   server.resource(
     'heroku_dev_center',
@@ -21,21 +19,20 @@ export function registerDevCenterResource(server: McpServer): void {
     async () => {
       let text = '';
       try {
-        text = await devCenterCrawler.loadCache();
-        if (!text) {
-          text =
-            '[No Dev Center crawl data available yet. The background crawler may still be running or has not completed.]';
-        }
+        const res = await fetch(DEV_CENTER_RESOURCE_URI);
+        text = await res.text();
       } catch (err) {
-        text = `[Error reading Dev Center crawl data: ${(err as Error)?.message || String(err)}]`;
+        text = `[Error reading Dev Center data: ${(err as Error)?.message || String(err)}]`;
       }
-
+      if (!text) {
+        text = '[No Dev Center data available.]';
+      }
       return {
         contents: [
           {
             uri: DEV_CENTER_RESOURCE_URI,
             mimeType: 'text/plain',
-            text: JSON.stringify(text)
+            text: text
           }
         ]
       };
