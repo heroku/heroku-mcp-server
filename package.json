@@ -21,7 +21,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.23.0",
-    "@modelcontextprotocol/inspector": "^0.7.0",
+    "@modelcontextprotocol/inspector": "^0.14.1",
     "@types/chai": "^5.2.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
