@@ -17,22 +17,22 @@ export function registerDevCenterResource(server: McpServer): void {
       description: 'This resource provides a summary of Heroku Dev Center articles, and how to use Heroku.'
     },
     async () => {
-      let text = '';
+      let docText = '';
       try {
         const res = await fetch(DEV_CENTER_RESOURCE_URI);
-        text = await res.text();
+        docText = await res.text();
       } catch (err) {
-        text = `[Error reading Dev Center data: ${(err as Error)?.message || String(err)}]`;
+        docText = `[Error reading Dev Center data: ${(err as Error)?.message || String(err)}]`;
       }
-      if (!text) {
-        text = '[No Dev Center data available.]';
+      if (!docText) {
+        docText = '[No Dev Center data available.]';
       }
       return {
         contents: [
           {
             uri: DEV_CENTER_RESOURCE_URI,
             mimeType: 'text/plain',
-            text: text
+            text: docText
           }
         ]
       };
