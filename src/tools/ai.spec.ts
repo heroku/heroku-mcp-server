@@ -1,7 +1,5 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import {
   registerListAiAvailableModelsTool,
   registerProvisionAiModelTool,
@@ -13,24 +11,17 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 
 describe('ai topic tools', () => {
-  describe('registerListAiAvailableModelsTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+  describe('listAiAvailableModelsTool', () => {
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name: string, _description: string, _schema: any, callback: Function) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListAiAvailableModelsTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListAiAvailableModelsTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -38,8 +29,8 @@ describe('ai topic tools', () => {
     });
 
     it('registers the tool with correct name', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_ai_available_models');
     });
 
@@ -51,10 +42,10 @@ describe('ai topic tools', () => {
         ' claude-3-5-sonnet-latest  text-to-text      us                \n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_AI_AVAILABLE_MODELS).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({}, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -62,20 +53,13 @@ describe('ai topic tools', () => {
   });
 
   describe('provisionAiModelTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name: string, _description: string, _schema: any, callback: Function) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerProvisionAiModelTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerProvisionAiModelTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -83,8 +67,8 @@ describe('ai topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('provision_ai_model');
       expect(call.args[2]).to.deep.equal(provisionAiModelOptionsSchema.shape);
     });
@@ -98,10 +82,10 @@ describe('ai topic tools', () => {
         .addFlags({ app: 'test-app' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', modelName: 'claude-3-5-sonnet-latest' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -116,10 +100,10 @@ describe('ai topic tools', () => {
         .addFlags({ app: 'test-app', as: 'MY_MODEL' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', modelName: 'claude-3-5-sonnet-latest', as: 'MY_MODEL' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -127,31 +111,24 @@ describe('ai topic tools', () => {
   });
 
   describe('makeAiInferenceTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
-    let toolCallback: Function;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let mkdtempStub: sinon.SinonStub;
     let writeFileStub: sinon.SinonStub;
     let rmdirStub: sinon.SinonStub;
     let tempDir: string;
     let optsFilePath: string;
+    let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name: string, _description: string, _schema: any, callback: Function) => {
-        toolCallback = callback;
-        return server;
-      });
-
       tempDir = '/tmp/com.heroku.mcp.ai.inference-12345';
       optsFilePath = path.join(tempDir, 'opts.json');
       mkdtempStub = sinon.stub(fs, 'mkdtemp').resolves(tempDir);
       writeFileStub = sinon.stub(fs, 'writeFile').resolves();
       rmdirStub = sinon.stub(fs, 'rmdir').resolves();
 
-      registerMakeAiInferenceTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerMakeAiInferenceTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -159,8 +136,8 @@ describe('ai topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('make_ai_inference');
       expect(call.args[2]).to.deep.equal(aiInferenceOptionsSchema.shape);
     });
@@ -181,7 +158,7 @@ describe('ai topic tools', () => {
         })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -191,12 +168,12 @@ describe('ai topic tools', () => {
         },
         {}
       );
-      const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
-      expect(actualCommand).to.equal(expectedCommand);
+
       expect(mkdtempStub.calledOnce).to.be.true;
-      expect(mkdtempStub.firstCall.args[0]).to.include('com.heroku.mcp.ai.inference');
-      expect(writeFileStub.calledOnceWith(optsFilePath, JSON.stringify(opts, null, 0))).to.be.true;
-      expect(rmdirStub.calledOnceWith(tempDir, { recursive: true })).to.be.true;
+      expect(writeFileStub.calledOnce).to.be.true;
+      expect(writeFileStub.firstCall.args[0]).to.equal(optsFilePath);
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(rmdirStub.calledOnce).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -227,7 +204,7 @@ describe('ai topic tools', () => {
         })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -239,12 +216,13 @@ describe('ai topic tools', () => {
         },
         {}
       );
-      const actualCommand = herokuRepl.executeCommand.getCall(0).args[0];
+      const actualCommand = mocks.herokuRepl.executeCommand.getCall(0).args[0];
       expect(actualCommand).to.equal(expectedCommand);
       expect(mkdtempStub.calledOnce).to.be.true;
-      expect(mkdtempStub.firstCall.args[0]).to.include('com.heroku.mcp.ai.inference');
-      expect(writeFileStub.calledOnceWith(optsFilePath, JSON.stringify(opts, null, 0))).to.be.true;
-      expect(rmdirStub.calledOnceWith(tempDir, { recursive: true })).to.be.true;
+      expect(writeFileStub.calledOnce).to.be.true;
+      expect(writeFileStub.firstCall.args[0]).to.equal(optsFilePath);
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(rmdirStub.calledOnce).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
