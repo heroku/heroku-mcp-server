@@ -1,28 +1,19 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 import { listPrivateSpacesOptionsSchema, registerListPrivateSpacesTool } from './spaces.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 
 describe('spaces topic tools', () => {
   describe('registerListPrivateSpacesTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      // Capture the callback function when tool is registered
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListPrivateSpacesTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListPrivateSpacesTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -30,8 +21,8 @@ describe('spaces topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_private_spaces');
       expect(call.args[2]).to.deep.equal(listPrivateSpacesOptionsSchema.shape);
     });
@@ -40,10 +31,10 @@ describe('spaces topic tools', () => {
       const expectedOutput = '{"spaces": []}';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_PRIVATE_SPACES).addFlags({ json: true }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -55,10 +46,10 @@ describe('spaces topic tools', () => {
         .addFlags({ json: false })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ json: false }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -67,7 +58,7 @@ describe('spaces topic tools', () => {
     it('handles CLI errors properly', async () => {
       const expectedOutput = '<<<BEGIN RESULTS>>>\n<<<ERROR>>>API error<<<END ERROR>>><<<END RESULTS>>>';
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({}, {});
       expect(result).to.deep.equal({
