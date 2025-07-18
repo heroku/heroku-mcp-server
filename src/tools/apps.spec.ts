@@ -1,7 +1,5 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import {
   listAppsOptionsSchema,
   getAppInfoOptionsSchema,
@@ -14,23 +12,17 @@ import {
 } from './apps.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 
 describe('apps topic tools', () => {
   describe('registerListAppsTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListAppsTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListAppsTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -38,8 +30,8 @@ describe('apps topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_apps');
       expect(call.args[2]).to.deep.equal(listAppsOptionsSchema.shape);
     });
@@ -52,10 +44,10 @@ describe('apps topic tools', () => {
         'test-app2  test-team@herokumanager.com';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ all: true }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ all: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -65,10 +57,10 @@ describe('apps topic tools', () => {
       const expectedOutput = '=== user@example.com Apps\n\n' + 'test-app';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ json: false }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ json: false }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -78,10 +70,10 @@ describe('apps topic tools', () => {
       const expectedOutput = '=== user@example.com Apps\n\n' + 'test-app';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ personal: true }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ personal: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -91,10 +83,10 @@ describe('apps topic tools', () => {
       const expectedOutput = '=== Apps in space test-space\n\n' + 'test-app2\n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ space: 'test-space' }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ space: 'test-space' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -104,10 +96,10 @@ describe('apps topic tools', () => {
       const expectedOutput = '=== Apps in team test-team\n\n' + 'test-app2\n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS).addFlags({ team: 'test-team' }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ team: 'test-team' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -115,20 +107,13 @@ describe('apps topic tools', () => {
   });
 
   describe('registerGetAppInfoTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerGetAppInfoTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerGetAppInfoTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -136,8 +121,8 @@ describe('apps topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('get_app_info');
       expect(call.args[2]).to.deep.equal(getAppInfoOptionsSchema.shape);
     });
@@ -148,10 +133,10 @@ describe('apps topic tools', () => {
         .addFlags({ app: 'test-app', json: true })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', json: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -161,10 +146,10 @@ describe('apps topic tools', () => {
       const expectedOutput = '=== test-app\n\n' + 'Addons: heroku-postgresql:essential-0\n' + 'Stack:  heroku-24';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.GET_APP_INFO).addFlags({ app: 'test-app' }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -172,20 +157,13 @@ describe('apps topic tools', () => {
   });
 
   describe('registerCreateAppTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerCreateAppTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerCreateAppTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -193,8 +171,8 @@ describe('apps topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('create_app');
       expect(call.args[2]).to.deep.equal(createAppOptionsSchema.shape);
     });
@@ -207,10 +185,10 @@ describe('apps topic tools', () => {
         .addPositionalArguments({ app: 'test-app' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -225,10 +203,10 @@ describe('apps topic tools', () => {
         .addFlags({ space: 'test-space' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', space: 'test-space' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -243,10 +221,10 @@ describe('apps topic tools', () => {
         .addFlags({ team: 'test-team' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', team: 'test-team' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -258,10 +236,10 @@ describe('apps topic tools', () => {
         'https://frozen-badlands-89ae2afb35d.herokuapp.com/ | https://git.heroku.com/frozen-badlands.git\n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({}, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -269,20 +247,13 @@ describe('apps topic tools', () => {
   });
 
   describe('registerRenameAppTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerRenameAppTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerRenameAppTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -290,8 +261,8 @@ describe('apps topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('rename_app');
       expect(call.args[2]).to.deep.equal(renameAppOptionsSchema.shape);
     });
@@ -305,10 +276,10 @@ describe('apps topic tools', () => {
         .addFlags({ app: 'test-app' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app', newName: 'test-app-2' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -317,18 +288,10 @@ describe('apps topic tools', () => {
 
   // Common error handling test for all tools
   describe('error handling', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
-    let toolCallback: Function;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
+      mocks = setupMcpToolMocks();
     });
 
     afterEach(() => {
@@ -337,8 +300,6 @@ describe('apps topic tools', () => {
 
     it('handles CLI errors properly for all tools', async () => {
       const expectedOutput = '<<<BEGIN RESULTS>>>\n<<<ERROR>>>API error<<<END ERROR>>><<<END RESULTS>>>';
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
 
       // Test error handling for each tool
       const tools = [
@@ -349,8 +310,12 @@ describe('apps topic tools', () => {
       ];
 
       for (const tool of tools) {
-        tool.register(server, herokuRepl);
+        mocks.herokuRepl.executeCommand.resolves(expectedOutput);
+        tool.register(mocks.server, mocks.herokuRepl);
+
+        const toolCallback = mocks.getToolCallback();
         const result = await toolCallback(tool.options, {});
+
         expect(result).to.deep.equal({
           isError: true,
           content: [

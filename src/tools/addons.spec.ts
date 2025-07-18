@@ -1,7 +1,5 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import {
   listAddonsOptionsSchema,
   getAddonInfoOptionsSchema,
@@ -16,23 +14,17 @@ import {
 } from './addons.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 
 describe('addons topic tools', () => {
   describe('registerListAddonsTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListAddonsTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListAddonsTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -40,8 +32,8 @@ describe('addons topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_addons');
       expect(call.args[2]).to.deep.equal(listAddonsOptionsSchema.shape);
     });
@@ -54,10 +46,10 @@ describe('addons topic tools', () => {
         ' test-app-2 redis-elliptical-12345  heroku-redis:mini             ~$0.004/hour $3/month  created \n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDONS).addFlags({ all: true }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ all: true }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -71,10 +63,10 @@ describe('addons topic tools', () => {
         '  └─ as REDIS_TEST_DB                                                      \n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDONS).addFlags({ app: 'test-app-2' }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app-2' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -82,20 +74,13 @@ describe('addons topic tools', () => {
   });
 
   describe('registerGetAddonInfoTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerGetAddonInfoTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerGetAddonInfoTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -103,8 +88,8 @@ describe('addons topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('get_addon_info');
       expect(call.args[2]).to.deep.equal(getAddonInfoOptionsSchema.shape);
     });
@@ -119,10 +104,10 @@ describe('addons topic tools', () => {
         .addPositionalArguments({ addon: 'postgresql-curved-12345' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ addon: 'postgresql-curved-12345' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -139,10 +124,10 @@ describe('addons topic tools', () => {
         .addFlags({ app: 'test-app' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ addon: 'DATABASE', app: 'test-app' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -150,20 +135,13 @@ describe('addons topic tools', () => {
   });
 
   describe('registerCreateAddonTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerCreateAddonTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerCreateAddonTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -171,8 +149,8 @@ describe('addons topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('create_addon');
       expect(call.args[2]).to.deep.equal(createAddonOptionsSchema.shape);
     });
@@ -191,7 +169,7 @@ describe('addons topic tools', () => {
         .addPositionalArguments({ 'service:plan': 'heroku-postgresql:essential-0' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -202,7 +180,7 @@ describe('addons topic tools', () => {
         },
         {}
       );
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -218,7 +196,7 @@ describe('addons topic tools', () => {
         .addPositionalArguments({ 'service:plan': 'heroku-postgresql:essential-0' })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -227,7 +205,7 @@ describe('addons topic tools', () => {
         },
         {}
       );
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -235,20 +213,13 @@ describe('addons topic tools', () => {
   });
 
   describe('registerListAddonServicesTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListAddonServicesTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListAddonServicesTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -256,8 +227,8 @@ describe('addons topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_addon_services');
       expect(call.args[2]).to.deep.equal(listAddonServicesOptionsSchema.shape);
     });
@@ -269,11 +240,10 @@ describe('addons topic tools', () => {
         ' heroku-postgresql Heroku PostgreSQL      ga    \n' +
         ' heroku-redis      Heroku Key-Value Store ga    \n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_SERVICES).build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({}, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -281,20 +251,13 @@ describe('addons topic tools', () => {
   });
 
   describe('registerListAddonPlansTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerListAddonPlansTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerListAddonPlansTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -302,8 +265,8 @@ describe('addons topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      expect(mocks.server.tool.calledOnce).to.be.true;
+      const call = mocks.server.tool.getCall(0);
       expect(call.args[0]).to.equal('list_addon_plans');
       expect(call.args[2]).to.deep.equal(listAddonPlansOptionsSchema.shape);
     });
@@ -317,11 +280,10 @@ describe('addons topic tools', () => {
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_PLANS)
         .addPositionalArguments({ service: 'heroku-postgresql' })
         .build();
-
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ service: 'heroku-postgresql' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -330,18 +292,10 @@ describe('addons topic tools', () => {
 
   // Common error handling test for all tools
   describe('error handling', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
-    let toolCallback: Function;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
+      mocks = setupMcpToolMocks();
     });
 
     afterEach(() => {
@@ -351,7 +305,7 @@ describe('addons topic tools', () => {
     it('handles CLI errors properly for all tools', async () => {
       const expectedOutput = '<<<BEGIN RESULTS>>>\n<<<ERROR>>>API error<<<END ERROR>>><<<END RESULTS>>>';
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       // Test error handling for each tool
       const tools = [
@@ -366,8 +320,10 @@ describe('addons topic tools', () => {
       ];
 
       for (const tool of tools) {
-        tool.register(server, herokuRepl);
+        tool.register(mocks.server, mocks.herokuRepl);
+        const toolCallback = mocks.getToolCallback();
         const result = await toolCallback(tool.options, {});
+        console.log('result', result);
         expect(result).to.deep.equal({
           isError: true,
           content: [

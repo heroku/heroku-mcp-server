@@ -20,7 +20,7 @@ export default defineConfig([
   },
   {
     files: ['**/*.ts'],
-    ignores: ['**/dist', '**/*.spec.ts', '**/*.d.ts'],
+    ignores: ['**/dist', '**/*.spec.ts', '**/*.d.ts', '**/*.spechelper.ts'],
     extends: compat.extends(
       'eslint-config-salesforce-typescript',
       'plugin:jsdoc/recommended-typescript-error',

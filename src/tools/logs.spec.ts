@@ -1,27 +1,19 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { getAppGetAppLogsOptionsSchema, registerGetAppLogsTool } from './logs.js';
 import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 
 describe('logs topic tools', () => {
   describe('registerGetAppLogsTool', () => {
-    let server: sinon.SinonStubbedInstance<McpServer>;
-    let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
     let toolCallback: Function;
 
     beforeEach(() => {
-      server = sinon.createStubInstance(McpServer);
-      herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-      server.tool.callsFake((_name, _description, _schema, callback) => {
-        toolCallback = callback;
-        return server;
-      });
-
-      registerGetAppLogsTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerGetAppLogsTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     afterEach(() => {
@@ -29,8 +21,9 @@ describe('logs topic tools', () => {
     });
 
     it('registers the tool with correct name and schema', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      const call = server.tool.getCall(0);
+      const tool = mocks.server.tool;
+      const call = tool.getCall(0);
+      expect(tool.calledOnce).to.be.true;
       expect(call.args[0]).to.equal('get_app_logs');
       expect(call.args[2]).to.deep.equal(getAppGetAppLogsOptionsSchema.shape);
     });
@@ -39,10 +32,10 @@ describe('logs topic tools', () => {
       const expectedOutput = '2025-04-03T18:34:16Z app[web.1]: Server started on port 3000\n';
       const expectedCommand = new CommandBuilder(TOOL_COMMAND_MAP.LOGS).addFlags({ app: 'test-app' }).build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app' }, {});
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -57,7 +50,7 @@ describe('logs topic tools', () => {
         })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -66,7 +59,7 @@ describe('logs topic tools', () => {
         },
         {}
       );
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -81,7 +74,7 @@ describe('logs topic tools', () => {
         })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -90,7 +83,7 @@ describe('logs topic tools', () => {
         },
         {}
       );
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -105,7 +98,7 @@ describe('logs topic tools', () => {
         })
         .build();
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback(
         {
@@ -114,7 +107,7 @@ describe('logs topic tools', () => {
         },
         {}
       );
-      expect(herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -123,7 +116,7 @@ describe('logs topic tools', () => {
     it('handles CLI errors properly', async () => {
       const expectedOutput = '<<<BEGIN RESULTS>>>\n<<<ERROR>>>API error<<<END ERROR>>><<<END RESULTS>>>';
 
-      herokuRepl.executeCommand.resolves(expectedOutput);
+      mocks.herokuRepl.executeCommand.resolves(expectedOutput);
 
       const result = await toolCallback({ app: 'test-app' }, {});
       expect(result).to.deep.equal({

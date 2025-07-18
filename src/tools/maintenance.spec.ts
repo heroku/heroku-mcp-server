@@ -1,53 +1,47 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { registerMaintenanceOnTool, registerMaintenanceOffTool } from './maintenance.js';
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 
 describe('Maintenance Tools', () => {
-  let server: sinon.SinonStubbedInstance<McpServer>;
-  let herokuRepl: sinon.SinonStubbedInstance<HerokuREPL>;
-  let toolCallback: Function;
-
-  beforeEach(() => {
-    server = sinon.createStubInstance(McpServer);
-    herokuRepl = sinon.createStubInstance(HerokuREPL);
-
-    server.tool.callsFake((_name, _description, _schema, callback) => {
-      toolCallback = callback;
-      return server;
-    });
-  });
-
   afterEach(() => {
     sinon.restore();
   });
 
   describe('maintenance:on', () => {
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
+    let toolCallback: Function;
+
     beforeEach(() => {
-      registerMaintenanceOnTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerMaintenanceOnTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     it('should register the tool with correct parameters', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      expect(server.tool.firstCall.args[0]).to.equal('maintenance_on');
-      expect(server.tool.firstCall.args[1]).to.be.a('string');
-      expect(server.tool.firstCall.args[2]).to.be.an('object');
-      expect(server.tool.firstCall.args[3]).to.be.a('function');
+      const tool = mocks.server.tool;
+
+      expect(tool.calledOnce).to.be.true;
+      expect(tool.firstCall.args[0]).to.equal('maintenance_on');
+      expect(tool.firstCall.args[1]).to.be.a('string');
+      expect(tool.firstCall.args[2]).to.be.an('object');
+      expect(tool.firstCall.args[3]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
-      herokuRepl.executeCommand.resolves('Enabling maintenance mode for myapp... done\n');
+      mocks.herokuRepl.executeCommand.resolves('Enabling maintenance mode for myapp... done\n');
 
       await toolCallback({ app: 'myapp' });
-      expect(herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.MAINTENANCE_ON} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.MAINTENANCE_ON} --app=myapp`
+      );
     });
 
     it('should handle successful response', async () => {
       const successResponse = 'Enabling maintenance mode for myapp... done\n';
-      herokuRepl.executeCommand.resolves(successResponse);
+      mocks.herokuRepl.executeCommand.resolves(successResponse);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -57,7 +51,7 @@ describe('Maintenance Tools', () => {
 
     it('should handle error response', async () => {
       const errorResponse = '<<<ERROR>>>\nError: App not found\n<<<END ERROR>>>\n';
-      herokuRepl.executeCommand.resolves(errorResponse);
+      mocks.herokuRepl.executeCommand.resolves(errorResponse);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -73,29 +67,38 @@ describe('Maintenance Tools', () => {
   });
 
   describe('maintenance:off', () => {
+    let mocks: ReturnType<typeof setupMcpToolMocks>;
+    let toolCallback: Function;
+
     beforeEach(() => {
-      registerMaintenanceOffTool(server, herokuRepl);
+      mocks = setupMcpToolMocks();
+      registerMaintenanceOffTool(mocks.server, mocks.herokuRepl);
+      toolCallback = mocks.getToolCallback();
     });
 
     it('should register the tool with correct parameters', () => {
-      expect(server.tool.calledOnce).to.be.true;
-      expect(server.tool.firstCall.args[0]).to.equal('maintenance_off');
-      expect(server.tool.firstCall.args[1]).to.be.a('string');
-      expect(server.tool.firstCall.args[2]).to.be.an('object');
-      expect(server.tool.firstCall.args[3]).to.be.a('function');
+      const tool = mocks.server.tool;
+
+      expect(tool.calledOnce).to.be.true;
+      expect(tool.firstCall.args[0]).to.equal('maintenance_off');
+      expect(tool.firstCall.args[1]).to.be.a('string');
+      expect(tool.firstCall.args[2]).to.be.an('object');
+      expect(tool.firstCall.args[3]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
-      herokuRepl.executeCommand.resolves('Disabling maintenance mode for myapp... done\n');
+      mocks.herokuRepl.executeCommand.resolves('Disabling maintenance mode for myapp... done\n');
 
       await toolCallback({ app: 'myapp' });
-      expect(herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.MAINTENANCE_OFF} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.MAINTENANCE_OFF} --app=myapp`
+      );
     });
 
     it('should handle successful response', async () => {
       const successResponse = 'Disabling maintenance mode for myapp... done\n';
-      herokuRepl.executeCommand.resolves(successResponse);
+      mocks.herokuRepl.executeCommand.resolves(successResponse);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -105,7 +108,7 @@ describe('Maintenance Tools', () => {
 
     it('should handle error response', async () => {
       const errorResponse = '<<<ERROR>>>\nError: App not found\n<<<END ERROR>>>\n';
-      herokuRepl.executeCommand.resolves(errorResponse);
+      mocks.herokuRepl.executeCommand.resolves(errorResponse);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -120,7 +123,7 @@ describe('Maintenance Tools', () => {
     });
 
     it('should handle undefined response', async () => {
-      herokuRepl.executeCommand.resolves(undefined);
+      mocks.herokuRepl.executeCommand.resolves(undefined);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({

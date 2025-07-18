@@ -10,7 +10,7 @@
   "type": "module",
   "dependencies": {
     "@heroku/plugin-ai": "^1.0.1",
-    "@modelcontextprotocol/sdk": "1.9.0",
+    "@modelcontextprotocol/sdk": "^1.16.0",
     "cheerio": "^1.1.0",
     "jsonschema": "^1.5.0",
     "node-fetch": "^3.3.2",
@@ -85,6 +85,7 @@
     "posttest": "npm run lint",
     "prepare": "husky",
     "pretest": "npm run build",
+    "type-check": "tsc --noEmit",
     "test": "nyc mocha --forbid-only --loader=ts-node/esm",
     "exec-perms": "shx chmod +x dist/*.js",
     "test:watch": "nyc mocha --watch --forbid-only",
