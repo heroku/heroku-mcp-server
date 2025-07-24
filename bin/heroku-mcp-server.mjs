@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/node
+#!/usr/bin/env node
 /* global process */
 try {
   const { runServer } = await import('../dist/index.js');
