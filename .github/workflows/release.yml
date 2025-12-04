@@ -1,0 +1,118 @@
+name: Release
+
+# This workflow is for PUBLIC repositories that need to use workflows from a PRIVATE repository
+# It uses token-based checkout to access the private npm-release-workflows repository
+#
+# SETUP INSTRUCTIONS:
+# 1. Create a Personal Access Token (PAT) or GitHub App token with 'repo' scope
+#    - See documentation for token creation instructions (docs/credentials.md)
+# 2. Add the token as a secret named 'WORKFLOWS_ACCESS_GITHUB_TOKEN' in your repository
+# 3. Replace 'heroku' with your GitHub organization name
+# 4. Replace 'npm-release-workflows' with the actual repository name if different
+# 5. Adjust the hardcoded values in the workflow (package_manager, test_command, lint_command, build_command)
+#    based on your project's needs - these are hardcoded in the workflow, not passed as inputs
+# 6. Copy this file to .github/workflows/release.yml in your project
+
+on:
+  workflow_dispatch:
+    inputs:
+      # DRY RUN MODE
+      # Set to true to test the release process without actually publishing to npm
+      # Useful for validating workflow changes or testing version bumps
+      dry_run:
+        description: 'Test release without publishing (creates PR but skips npm publish)'
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout workflows repository
+        uses: actions/checkout@v4
+        with:
+          repository: heroku/npm-release-workflows
+          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
+          path: workflows-repo
+          ref: main
+
+      - name: Validate and test
+        uses: ./workflows-repo/.github/actions/release-validate-public
+        with:
+          # Update these values to match your project:
+          package-manager: pnpm # Options: npm, yarn, or pnpm (must match your project's package manager)
+          lint_command: 'run lint' # Set to '' to skip if no lint script exists
+          test_command: 'test' # Set to '' to skip if no test script exists
+
+  release-please-pr:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release-workflow.outputs.release_created }}
+      tag_name: ${{ steps.release-workflow.outputs.tag_name }}
+      pr_number: ${{ steps.release-workflow.outputs.pr_number }}
+      config_file: ${{ steps.release-workflow.outputs.config_file }}
+      manifest_file: ${{ steps.release-workflow.outputs.manifest_file }}
+      npm_tag: ${{ steps.release-workflow.outputs.npm_tag }}
+      package_name: ${{ steps.release-workflow.outputs.package_name }}
+      no_release_needed: ${{ steps.release-workflow.outputs.no_release_needed }}
+      pr_already_exists: ${{ steps.release-workflow.outputs.pr_already_exists }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout workflows repository
+        uses: actions/checkout@v4
+        with:
+          repository: heroku/npm-release-workflows
+          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
+          path: workflows-repo
+          ref: main
+
+      - name: Create release PR
+        id: release-workflow
+        uses: ./workflows-repo/.github/actions/release-please-pr-public
+        with:
+          # Update package-manager to match your project (npm, yarn, or pnpm)
+          package-manager: pnpm # Must match your project's package manager
+          branch_name: ${{ github.ref_name }}
+          dry_run: ${{ inputs.dry_run }}
+
+  publish:
+    needs: release-please-pr
+    if:
+      needs.release-please-pr.result == 'success' && (needs.release-please-pr.outputs.pr_number != '' ||
+      needs.release-please-pr.outputs.pr_already_exists == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout workflows repository
+        uses: actions/checkout@v4
+        with:
+          repository: heroku/npm-release-workflows
+          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
+          path: workflows-repo
+          ref: main
+
+      - name: Publish to npm
+        uses: ./workflows-repo/.github/actions/release-publish-public
+        with:
+          # Update these values to match your project:
+          package-manager: pnpm # Options: npm, yarn, or pnpm (used for installing dependencies and building; publishing always uses pnpm)
+          workflows_token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
+          build_command: 'run build' # Set to '' to skip if no build script exists
+          dry_run: ${{ inputs.dry_run }}
+          npm_tag: ${{ needs.release-please-pr.outputs.npm_tag }}
+          package_name: ${{ needs.release-please-pr.outputs.package_name }}
+          pr_number: ${{ needs.release-please-pr.outputs.pr_number }}
+          branch_name: ${{ github.ref_name }}

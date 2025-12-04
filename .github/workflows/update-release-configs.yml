@@ -1,0 +1,42 @@
+name: Update Release Configs
+
+# This workflow generates release-please config files from your release-channels.yml
+# Run this whenever you modify release-channels.yml to regenerate the config files
+# This workflow is for PUBLIC repositories that need to use workflows from a PRIVATE repository
+# It uses token-based checkout to access the private npm-release-workflows repository
+#
+# SETUP INSTRUCTIONS:
+# 1. Ensure WORKFLOWS_ACCESS_GITHUB_TOKEN secret is configured (see docs/credentials.md)
+# 2. Replace 'heroku' with your GitHub organization name
+# 3. Replace 'npm-release-workflows' with the actual repository name if different
+# 4. Copy this file to .github/workflows/update-release-configs.yml in your project
+#
+# USAGE:
+# - Edit release-channels.yml in your project
+# - Go to Actions → "Update Release Configs" → "Run workflow"
+# - A PR will be created if the generated configs differ from committed versions
+# - Review and merge the PR to commit both release-channels.yml and generated configs
+
+on:
+  workflow_dispatch:
+    # No inputs needed - this workflow reads from release-channels.yml
+
+jobs:
+  update-configs:
+    runs-on: pub-hk-ubuntu-24.04-ip
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout workflows repository
+        uses: actions/checkout@v4
+        with:
+          repository: heroku/npm-release-workflows
+          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
+          path: workflows-repo
+          ref: main
+
+      - name: Update release configs
+        uses: ./workflows-repo/.github/actions/update-release-configs-job-public
