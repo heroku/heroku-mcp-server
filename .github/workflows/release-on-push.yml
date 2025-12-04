@@ -47,5 +47,5 @@ jobs:
         with:
           # Update package-manager to match your project (npm, yarn, or pnpm)
           # Used for installing dependencies when creating releases
-          package-manager: pnpm
+          package-manager: npm
           branch_name: ${{ github.ref_name }}

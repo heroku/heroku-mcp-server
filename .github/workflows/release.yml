@@ -43,7 +43,7 @@ jobs:
         uses: ./workflows-repo/.github/actions/release-validate-public
         with:
           # Update these values to match your project:
-          package-manager: pnpm # Options: npm, yarn, or pnpm (must match your project's package manager)
+          package-manager: npm # Options: npm, yarn, or pnpm (must match your project's package manager)
           lint_command: 'run lint' # Set to '' to skip if no lint script exists
           test_command: 'test' # Set to '' to skip if no test script exists
 
@@ -79,7 +79,7 @@ jobs:
         uses: ./workflows-repo/.github/actions/release-please-pr-public
         with:
           # Update package-manager to match your project (npm, yarn, or pnpm)
-          package-manager: pnpm # Must match your project's package manager
+          package-manager: npm # Must match your project's package manager
           branch_name: ${{ github.ref_name }}
           dry_run: ${{ inputs.dry_run }}
 
@@ -108,7 +108,7 @@ jobs:
         uses: ./workflows-repo/.github/actions/release-publish-public
         with:
           # Update these values to match your project:
-          package-manager: pnpm # Options: npm, yarn, or pnpm (used for installing dependencies and building; publishing always uses pnpm)
+          package-manager: npm # Options: npm, yarn, or pnpm (used for installing dependencies and building; publishing always uses pnpm)
           workflows_token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
           build_command: 'run build' # Set to '' to skip if no build script exists
           dry_run: ${{ inputs.dry_run }}
