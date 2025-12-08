@@ -25,12 +25,7 @@ const server = new McpServer(
   {
     capabilities: {
       tools: {
-        list: {
-          description: 'List all tools',
-          parameters: {
-            type: 'object'
-          }
-        }
+        listChanged: true
       }
     }
   }

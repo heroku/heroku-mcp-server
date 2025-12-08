@@ -40,7 +40,7 @@ describe('setupMcpToolMocks', () => {
       });
 
       // Simulate registration with different argument types
-      mocks.server.tool('test_tool', 'Test description', {}, { option: 'value' }, testCallback);
+      mocks.server.tool('test_tool', 'Test description', {}, { readOnlyHint: true }, testCallback);
 
       const capturedCallback = mocks.getToolCallback();
       expect(capturedCallback).to.equal(testCallback);

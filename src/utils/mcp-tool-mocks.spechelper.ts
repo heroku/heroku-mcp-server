@@ -17,17 +17,19 @@ export function setupMcpToolMocks(): {
 
   // Create a proper mock for RegisteredTool
   const mockRegisteredTool = {
-    callback: sinon.stub(),
     enabled: true,
     enable: sinon.stub(),
     disable: sinon.stub(),
     update: sinon.stub(),
-    remove: sinon.stub()
+    remove: sinon.stub(),
+    handler: sinon.stub()
   };
 
   // Mock the server.tool method - callback is always the last parameter
   server.tool.callsFake((...args: any[]) => {
     toolCallback = args[args.length - 1];
+    // Update handler to point to the callback
+    mockRegisteredTool.handler = toolCallback as any;
     return mockRegisteredTool;
   });
 
