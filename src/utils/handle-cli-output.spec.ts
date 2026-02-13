@@ -37,6 +37,29 @@ describe('handleCliOutput', () => {
         content: [{ type: 'text', text: `${baseMessage}Details:\n${output}` }]
       });
     });
+
+    it('handles missing command error with appropriate message', () => {
+      const output =
+        '<<<ERROR>>>›   Warning: ai:models:list is not a heroku command.\nDid you mean container:login? (Y/n)\n›   Error: Run heroku help for a list of available commands.<<<END ERROR>>>';
+      const result: McpToolResponse = handleCliOutput(output);
+      const commandNotFoundMessage = '\n\nThe requested command was not found in your Heroku CLI installation.';
+
+      expect(result).to.deep.equal({
+        isError: true,
+        content: [{ type: 'text', text: `${baseMessage}Details:\n${output}${commandNotFoundMessage}` }]
+      });
+    });
+
+    it('handles missing command error case-insensitively', () => {
+      const output = '<<<ERROR>>>somecommand IS NOT A HEROKU COMMAND<<<END ERROR>>>';
+      const result: McpToolResponse = handleCliOutput(output);
+      const commandNotFoundMessage = '\n\nThe requested command was not found in your Heroku CLI installation.';
+
+      expect(result).to.deep.equal({
+        isError: true,
+        content: [{ type: 'text', text: `${baseMessage}Details:\n${output}${commandNotFoundMessage}` }]
+      });
+    });
   });
 
   describe('success handling', () => {
