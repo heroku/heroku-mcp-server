@@ -17,11 +17,11 @@ import { RendezvousConnection } from '../services/rendezvous.js';
 const appJsonSchema = await import('../utils/app-json.schema.json', { with: { type: 'json' } });
 
 /**
- * The only successful result is the Build & { name: string } type
+ * The only successful result is the Partial<Build> & { name: string } type
  * or a OneOffDynoResult for one-off dyno deployments
  */
 export type DeploymentResult =
-  | (Build & { name: string; errorMessage?: string })
+  | (Partial<Build> & { name: string; errorMessage?: string })
   | OneOffDynoResult
   | { name?: string; errorMessage: string }
   | null;
@@ -246,7 +246,7 @@ export class DeployToHeroku extends AbortController {
    * @returns an AppSetup object with the details of the newly setup app
    * @throws {DeploymentError} If the deployment fails
    */
-  protected async deployToHeroku(): Promise<(Build & { name: string }) | null> {
+  protected async deployToHeroku(): Promise<(Partial<Build> & { name: string }) | null> {
     const { tarballUri, rootUri, appJson } = this.deploymentOptions;
 
     let blobUrl = tarballUri?.toString();
@@ -449,7 +449,7 @@ export class DeployToHeroku extends AbortController {
         buildOutput = await this.captureBuildOutput(result.output_stream_url);
       }
 
-      const info = await this.buildService.info(appName, result.id!, this.requestInit);
+      const info = await this.buildService.info(appName, result.id, this.requestInit);
       if (info.status === 'failed') {
         throw new DeploymentError(
           `The request was sent to Heroku successfully but there was a problem with deployment: ${info.status} - ${buildOutput}`,
@@ -470,7 +470,7 @@ export class DeployToHeroku extends AbortController {
    * @returns Build object with the details of the newly setup app
    * @throws {DeploymentError} If the deployment fails
    */
-  private async setupNewApp(blobUrl: string): Promise<Build & { name: string }> {
+  private async setupNewApp(blobUrl: string): Promise<Partial<Build> & { name: string }> {
     const { name, spaceId, teamId, env, internalRouting } = this.deploymentOptions;
     const payload: AppSetupCreatePayload = {
       // eslint-disable-next-line camelcase
@@ -526,7 +526,7 @@ export class DeployToHeroku extends AbortController {
     }
 
     if (info?.build?.output_stream_url) {
-      const buildOutput = await this.captureBuildOutput(info.build.output_stream_url as string);
+      const buildOutput = await this.captureBuildOutput(info.build.output_stream_url);
       info.build.output = buildOutput;
     }
 

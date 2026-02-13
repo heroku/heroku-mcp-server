@@ -194,7 +194,7 @@ describe('HerokuREPL', () => {
     });
 
     it('should return npx command when npx is available', () => {
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: '9.8.1'
@@ -211,14 +211,14 @@ describe('HerokuREPL', () => {
 
     it('should return heroku command when npx is not available but heroku CLI >= 10.10.0 is available', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI available with version >= 10.10.0
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: 'heroku/10.15.0 (darwin-x64) node-v18.17.0'
@@ -235,14 +235,14 @@ describe('HerokuREPL', () => {
 
     it('should return heroku command when npx is not available but heroku CLI > 10.x is available', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI available with version > 10.x
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: 'heroku/11.0.0 (darwin-x64) node-v18.17.0'
@@ -259,14 +259,14 @@ describe('HerokuREPL', () => {
 
     it('should emit fatalError and return null when npx is not available and heroku CLI < 10.10.0 is available', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI available but version < 10.10.0
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: 'heroku/10.9.0 (darwin-x64) node-v18.17.0'
@@ -283,14 +283,14 @@ describe('HerokuREPL', () => {
 
     it('should emit fatalError and return null when npx is not available and heroku CLI is not available', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI not available
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('heroku not found'),
         status: 1,
         stdout: ''
@@ -308,14 +308,14 @@ describe('HerokuREPL', () => {
 
     it('should emit fatalError and return null when npx is not available and heroku CLI version format is unexpected', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI available but version format is unexpected
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: 'some unexpected output without version'
@@ -333,14 +333,14 @@ describe('HerokuREPL', () => {
 
     it('should emit fatalError and return null when npx is not available and heroku CLI returns error', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI returns error
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('heroku command failed'),
         status: 1,
         stdout: ''
@@ -358,14 +358,14 @@ describe('HerokuREPL', () => {
 
     it('should emit fatalError and return null when npx is not available and heroku CLI stdout is not a string', () => {
       // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('npx not found'),
         status: 1,
         stdout: ''
       });
 
       // heroku CLI available but stdout is not a string
-      spawnSyncStub.withArgs('heroku', ['version'], { encoding: 'utf-8' }).returns({
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: Buffer.from('heroku/10.15.0')

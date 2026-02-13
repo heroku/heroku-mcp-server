@@ -17,6 +17,7 @@ import * as ai from './tools/ai.js';
 import * as devCenterResource from './resources/dev-center-resource.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
+import { isPluginInstalled } from './utils/plugin-detector.js';
 
 const VERSION = pjson.default.version;
 
@@ -94,10 +95,16 @@ pipelines.registerPipelinesInfoTool(server, herokuRepl);
 deployToHeroku.registerDeployToHerokuTool(server);
 deployToHeroku.registerDeployOneOffDynoTool(server);
 
-// AI-related tools
-ai.registerListAiAvailableModelsTool(server, herokuRepl);
-ai.registerProvisionAiModelTool(server, herokuRepl);
-ai.registerMakeAiInferenceTool(server, herokuRepl);
+// AI-related tools (only register if plugin is installed)
+const hasAiPlugin = isPluginInstalled('@heroku/plugin-ai');
+if (hasAiPlugin) {
+  process.stderr.write('[Plugin Check] @heroku/plugin-ai: INSTALLED - Registering AI tools\n');
+  ai.registerListAiAvailableModelsTool(server, herokuRepl);
+  ai.registerProvisionAiModelTool(server, herokuRepl);
+  ai.registerMakeAiInferenceTool(server, herokuRepl);
+} else {
+  process.stderr.write('[Plugin Check] @heroku/plugin-ai: NOT INSTALLED - Skipping AI tools\n');
+}
 
 // Register the Dev Center resource
 devCenterResource.registerDevCenterResource(server);
