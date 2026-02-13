@@ -117,12 +117,19 @@ export class HerokuREPL extends EventEmitter {
    */
   private getHerokuCliCommandAndArgs(): { cliCommand: string; cliArgs: string[] } | null {
     // Check for npx presence
-    const npxCheck = HerokuREPL.spawnSync('npx', ['--version'], { encoding: 'utf-8' });
+    // On Windows, we need to use shell: true to find npx.cmd
+    const npxCheck = HerokuREPL.spawnSync('npx', ['--version'], {
+      encoding: 'utf-8',
+      shell: process.platform === 'win32'
+    });
     if (!npxCheck.error && npxCheck.status === 0) {
       return { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', '--repl'] };
     } else {
       // Fallback: check for heroku CLI and version
-      const herokuCheck = HerokuREPL.spawnSync('heroku', ['version'], { encoding: 'utf-8' });
+      const herokuCheck = HerokuREPL.spawnSync('heroku', ['version'], {
+        encoding: 'utf-8',
+        shell: process.platform === 'win32'
+      });
       if (
         !herokuCheck.error &&
         herokuCheck.status === 0 &&
@@ -186,6 +193,7 @@ export class HerokuREPL extends EventEmitter {
       this.process = HerokuREPL.spawn(cliCommand, cliArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
         signal: this.abortController.signal,
+        shell: process.platform === 'win32',
         env: {
           ...process.env,
           HEROKU_MCP_MODE: 'true',
