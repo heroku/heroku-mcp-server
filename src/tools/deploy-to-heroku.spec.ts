@@ -9,6 +9,7 @@ import SourceService from '../services/source-service.js';
 import AppSetupService from '../services/app-setup-service.js';
 import BuildService from '../services/build-service.js';
 import sinon from 'sinon';
+import * as Heroku from '@heroku-cli/schema';
 import { Build } from '@heroku-cli/schema';
 import { AppSetup } from '@heroku-cli/schema';
 import { OneOffDynoConfig } from './deploy-to-heroku.js';
@@ -96,7 +97,7 @@ describe('DeployToHeroku', () => {
       );
 
       const mockApp = { id: 'test-id', name: 'test-app', git_url: 'https://git.heroku.com/test-app.git' };
-      const mockBuild: Build & { name: string } = {
+      const mockBuild: Partial<Build> & { name: string } = {
         id: 'build-id',
         status: 'succeeded',
         output_stream_url: 'https://test.com/stream',
@@ -110,8 +111,8 @@ describe('DeployToHeroku', () => {
           put_url: 'https://test.com/put'
         }
       });
-      buildServiceStub.create.resolves(mockBuild);
-      buildServiceStub.info.resolves({ ...mockBuild, status: 'succeeded' });
+      buildServiceStub.create.resolves(mockBuild as Heroku.Build);
+      buildServiceStub.info.resolves({ ...mockBuild, status: 'succeeded' } as Heroku.Build);
 
       const options: DeploymentOptions = {
         name: 'test-app',
