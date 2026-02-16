@@ -1,7 +1,6 @@
 # heroku-mcp-server
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=heroku&config=eyJjb21tYW5kIjoibnB4IC15IEBoZXJva3UvbWNwLXNlcnZlciIsImVudiI6eyJIRVJPS1VfQVBJX0tFWSI6IjxZT1VSX0hFUk9LVV9BVVRIX1RPS0VOPiJ9fQ%3D%3D)
-[![smithery badge](https://smithery.ai/badge/@heroku/heroku-mcp-server)](https://smithery.ai/server/@heroku/heroku-mcp-server)
 
 > The Heroku Platform MCP Server works on Common Runtime, Cedar Private and Shield Spaces, and Fir Private Spaces.
 
@@ -392,6 +391,7 @@ functional breakpoints in the code:
 To set up local debugging with breakpoints:
 
 1. Store your Heroku auth token in the VS Code user settings:
+
    - Open the Command Palette (Cmd/Ctrl + Shift + P).
    - Type `Preferences: Open User Settings (JSON)`.
    - Add the following snippet:
@@ -477,15 +477,6 @@ To set up local debugging with breakpoints:
 5. Press F5 or use the **`Run and Debug`** sidebar.
 
 Note: the debugger automatically builds your TypeScript files before launching.
-
-### Installing via Smithery
-
-To install Heroku Platform MCP Server for Claude Desktop automatically via
-[Smithery](https://smithery.ai/server/@heroku/heroku-mcp-server):
-
-```bash
-npx -y @smithery/cli install @heroku/heroku-mcp-server --client claude
-```
 
 ## Environment Variables
 
