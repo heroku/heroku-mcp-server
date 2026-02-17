@@ -5,6 +5,25 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.1.0...mcp-server-v1.2.0) (2026-02-17)
+
+
+### Features
+
+* add plugin installation detection and handle command not found errors ([#146](https://github.com/heroku/heroku-mcp-server/issues/146)) ([8ab7898](https://github.com/heroku/heroku-mcp-server/commit/8ab78985edf524a81f42d480e30458879d025ca5))
+
+
+### Miscellaneous Chores
+
+* **deps-dev:** bump @eslint/eslintrc ([#145](https://github.com/heroku/heroku-mcp-server/issues/145)) ([4cd85a9](https://github.com/heroku/heroku-mcp-server/commit/4cd85a9eb73faa571b165441af1db07093afe5fd))
+* **deps:** bump @modelcontextprotocol/sdk from 1.24.0 to 1.25.2 ([#134](https://github.com/heroku/heroku-mcp-server/issues/134)) ([e724a9e](https://github.com/heroku/heroku-mcp-server/commit/e724a9ebddbc2f6a85756f2d1ea26aa1b7469a3c))
+* **deps:** bump @modelcontextprotocol/sdk from 1.25.2 to 1.26.0 ([#143](https://github.com/heroku/heroku-mcp-server/issues/143)) ([eec1d3a](https://github.com/heroku/heroku-mcp-server/commit/eec1d3a3542f9c0fb5dc386dc8151f6705f95d37))
+* **deps:** bump actions/checkout from 4 to 6 ([#114](https://github.com/heroku/heroku-mcp-server/issues/114)) ([4c3092a](https://github.com/heroku/heroku-mcp-server/commit/4c3092aae850612bde0619aa4559400bf6e98ade))
+* **deps:** bump hono from 4.11.3 to 4.11.5 ([#140](https://github.com/heroku/heroku-mcp-server/issues/140)) ([dff6c2f](https://github.com/heroku/heroku-mcp-server/commit/dff6c2f009ea7645714bb74cf7870a6e272b339c))
+* **deps:** bump lodash from 4.17.21 to 4.17.23 ([#138](https://github.com/heroku/heroku-mcp-server/issues/138)) ([38000b9](https://github.com/heroku/heroku-mcp-server/commit/38000b974de73e5b15d4f558a50d068cb0eeff02))
+* **deps:** bump qs from 6.14.1 to 6.14.2 ([#147](https://github.com/heroku/heroku-mcp-server/issues/147)) ([7a748c3](https://github.com/heroku/heroku-mcp-server/commit/7a748c3379fe129370aecafebe100bb71d0f1dff))
+* **deps:** bump undici from 7.11.0 to 7.18.2 ([#135](https://github.com/heroku/heroku-mcp-server/issues/135)) ([ecad300](https://github.com/heroku/heroku-mcp-server/commit/ecad3006591a7cc9c0cf05097538cfb6822c3535))
+
 ## [1.1.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.0.7...mcp-server-v1.1.0) (2026-01-16)
 
 ### Features
