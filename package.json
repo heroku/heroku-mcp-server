@@ -19,6 +19,7 @@
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.23.0",
     "@types/chai": "^5.2.1",
@@ -76,7 +77,7 @@
     "build": "rm -rf dist && tsc -p tsconfig.json && npm run exec-perms",
     "build:dev": "rm -rf dist && tsc --sourceMap -p tsconfig.json && npm run exec-perms",
     "build:watch": "tsc --sourceMap -p tsconfig.json -w",
-    "build:dxt": "npx @anthropic-ai/dxt pack",
+    "build:mcpb": "mcpb pack",
     "start": "node bin/heroku-mcp-server.mjs",
     "format": "prettier . --write --config ./.prettier.mjs",
     "lint": "cd src && eslint ./",
@@ -87,6 +88,6 @@
     "test": "nyc mocha --forbid-only --loader=ts-node/esm",
     "exec-perms": "shx chmod +x dist/*.js",
     "test:watch": "nyc mocha --watch --forbid-only",
-    "publish": "npm run build && npm run build:dxt && npm publish"
+    "publish": "npm run build && npm run build:mcpb && npm publish"
   }
 }

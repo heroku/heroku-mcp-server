@@ -5,7 +5,7 @@ channels:
     branch: main
     prerelease: false
     npm-tag: latest
-  
+
   beta:
     branch: beta
     prerelease: true

@@ -12,7 +12,7 @@ on:
 
 jobs:
   create-release:
-    runs-on: pub-hk-ubuntu-24.04-ip  # Options: ubuntu-latest | sfdc-hk-ubuntu-latest | pub-hk-ubuntu-24.04-ip
+    runs-on: pub-hk-ubuntu-24.04-ip # Options: ubuntu-latest | sfdc-hk-ubuntu-latest | pub-hk-ubuntu-24.04-ip
     permissions:
       contents: write
       pull-requests: write
@@ -39,6 +39,6 @@ jobs:
       - name: Create GitHub Release
         uses: ./workflows-repo/.github/actions/release-on-push-create-release-public
         with:
-          package-manager: npm  # npm | yarn | pnpm
+          package-manager: npm # npm | yarn | pnpm
           branch_name: ${{ github.ref_name }}
           token: ${{ steps.app-token.outputs.token }}
