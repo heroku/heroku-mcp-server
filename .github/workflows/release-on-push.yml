@@ -1,6 +1,7 @@
 name: Release on Push
 
 # Automatically creates GitHub releases after release PRs are merged
+# Uses GitHub App (vars.DEV_TOOLS_RELEASE_WORKFLOW_APP_ID, secrets.DEV_TOOLS_RELEASE_WORKFLOW_APP_PRIVATE_KEY)
 
 on:
   push:
@@ -11,24 +12,15 @@ on:
 
 jobs:
   create-release:
-    runs-on: pub-hk-ubuntu-24.04-ip # Options: ubuntu-latest | sfdc-hk-ubuntu-latest | pub-hk-ubuntu-24.04-ip
+    uses: heroku/npm-release-workflows/.github/workflows/release-on-push.yml@main
+    with:
+      runs_on: sfdc-hk-ubuntu-latest  # Options: ubuntu-latest | sfdc-hk-ubuntu-latest | pub-hk-ubuntu-24.04-ip
+      package-manager: pnpm  # Options: npm | yarn | pnpm
+      app_id: ${{ vars.DEV_TOOLS_RELEASE_WORKFLOW_APP_ID }}
+      # owner scopes the token to the org installation so it can access all repos in the installation
+      owner: ${{ github.repository_owner }}
+    secrets:
+      private_key: ${{ secrets.DEV_TOOLS_RELEASE_WORKFLOW_APP_PRIVATE_KEY }}
     permissions:
       contents: write
       pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Checkout workflows repository
-        uses: actions/checkout@v6
-        with:
-          repository: heroku/npm-release-workflows
-          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
-          path: workflows-repo
-          ref: main
-
-      - name: Create GitHub Release
-        uses: ./workflows-repo/.github/actions/release-on-push-create-release-public
-        with:
-          package-manager: npm # npm | yarn | pnpm
-          branch_name: ${{ github.ref_name }}
-          token: ${{ secrets.WORKFLOWS_ACCESS_GITHUB_TOKEN }}
