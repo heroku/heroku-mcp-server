@@ -17,8 +17,8 @@ updates:
       day: 'sunday'
       timezone: 'America/Los_Angeles'
     groups:
-      dev-deps:
+      dev-patch-minor-dependencies:
         dependency-type: 'development'
-      patch-dependencies:
         update-types:
           - 'patch'
+          - 'minor'
