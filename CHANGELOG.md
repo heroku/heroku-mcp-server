@@ -5,6 +5,39 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.0-beta.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.1.0-beta.0...mcp-server-v1.2.0-beta.0) (2026-02-18)
+
+
+### Features
+
+* Add heroku_dev_center Resource ([#84](https://github.com/heroku/heroku-mcp-server/issues/84)) ([a13c6d9](https://github.com/heroku/heroku-mcp-server/commit/a13c6d9ad1c706d31c395baa06e4b9fe5ed33b24))
+* add plugin installation detection and handle command not found errors ([#146](https://github.com/heroku/heroku-mcp-server/issues/146)) ([8ab7898](https://github.com/heroku/heroku-mcp-server/commit/8ab78985edf524a81f42d480e30458879d025ca5))
+* add the agents call command ([#56](https://github.com/heroku/heroku-mcp-server/issues/56)) ([ffafd8b](https://github.com/heroku/heroku-mcp-server/commit/ffafd8b9a1b8a3eeb29ece57af3d6d10d892aa58))
+* Add-ons topic tool implementations ([f043b8a](https://github.com/heroku/heroku-mcp-server/commit/f043b8af3ebaf8f546eb9b45da99950b1fe8cc1d))
+* Apps tools and related context tools ([164f782](https://github.com/heroku/heroku-mcp-server/commit/164f782f50b4e1b70e836d89b8a34548e5db9a3f))
+* Execute generated code on a one-off Dyno ([#22](https://github.com/heroku/heroku-mcp-server/issues/22)) ([5139964](https://github.com/heroku/heroku-mcp-server/commit/5139964a92cf55dac0414a7443e50a0210cbe1d7))
+* Overwriting User-Agent on CLI requests for MCP mode ([4551460](https://github.com/heroku/heroku-mcp-server/commit/455146012e03e5a40234ce21d4bf82106dd0270e))
+* prepare for .dxt file creation and compatibility ([#81](https://github.com/heroku/heroku-mcp-server/issues/81)) ([8a9b8d6](https://github.com/heroku/heroku-mcp-server/commit/8a9b8d678d1a9ed34a1e5605667199c3c59a5b82))
+* require global install of heroku cli for a4d ([#63](https://github.com/heroku/heroku-mcp-server/issues/63)) ([3e25587](https://github.com/heroku/heroku-mcp-server/commit/3e25587dd2e64f50dfbd5ec221ea10e5ba6e72a7))
+* short, concise descriptions minimizing token counts ([#35](https://github.com/heroku/heroku-mcp-server/issues/35)) ([bd1d878](https://github.com/heroku/heroku-mcp-server/commit/bd1d878a86d3bde9c7587e923ad92f7f0ccab0de))
+* **W-18081411,W-18081589:** integrate the Heroku CLI into the MCP server ([6e37775](https://github.com/heroku/heroku-mcp-server/commit/6e37775a57305c2fabebc8bd0700d42a0e0f308a))
+* **W-18081411,W-18081589:** integrate the Heroku CLI into the MCP server ([dbb8713](https://github.com/heroku/heroku-mcp-server/commit/dbb8713031cd9ae0598129b0b0acf31464589a17))
+* **W-18097559:** add data commands ([740a0a0](https://github.com/heroku/heroku-mcp-server/commit/740a0a0081e6f95d3165460785cf9a77186f09a7))
+* **W-18097559:** add data commands ([773e27d](https://github.com/heroku/heroku-mcp-server/commit/773e27d425b8e7a5e0e385c916361e397ce2f29e))
+* **W-18097560:** added pipelines and ps commands ([c5131af](https://github.com/heroku/heroku-mcp-server/commit/c5131af1ae0579109d7400c5c59c33b78530c38b))
+* **W-18097560:** added pipelines and ps commands ([45acbbe](https://github.com/heroku/heroku-mcp-server/commit/45acbbe5669d3ec012c4eb8f89aea7a99b0db79b))
+* **W-18187196:** Implement deploy to heroku tool ([0679311](https://github.com/heroku/heroku-mcp-server/commit/06793113c0214ea9caa68ba4d96a1aca643e0ea7))
+* **W-18187196:** Implement deploy to heroku tool ([331c047](https://github.com/heroku/heroku-mcp-server/commit/331c0476735d840a6842b22359932e7624d051d2))
+
+
+### Bug Fixes
+
+* 45 - MCP doesnt connect on windows ([#48](https://github.com/heroku/heroku-mcp-server/issues/48)) ([9c5bc89](https://github.com/heroku/heroku-mcp-server/commit/9c5bc89082b7a872faaa6226932dc74726514caf))
+* added the cli buildpack to ensure CLI availability ([#74](https://github.com/heroku/heroku-mcp-server/issues/74)) ([be2be16](https://github.com/heroku/heroku-mcp-server/commit/be2be16870ad0dd48f8f08aa036c912dc6d1fabb))
+* readme instructions ([043015d](https://github.com/heroku/heroku-mcp-server/commit/043015dfd2a9b1769c9aedef7a46320e89065f5d))
+* readme instructions ([fa44f1c](https://github.com/heroku/heroku-mcp-server/commit/fa44f1c7133386b103d8335a7643654f762e8ada))
+* use the correct mcpServers json format ([#41](https://github.com/heroku/heroku-mcp-server/issues/41)) ([bfb1312](https://github.com/heroku/heroku-mcp-server/commit/bfb1312e051a11804a8f7a85b0a53da329201723))
+
 ## [1.1.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.0.7...mcp-server-v1.1.0) (2026-01-16)
 
 ### Features
