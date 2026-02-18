@@ -68,7 +68,7 @@ export class HerokuREPL extends EventEmitter {
    * async iterator that yields the commands being executed
    *
    * @returns An async iterator that yields the commands being executed
-   * @yields the command being executed
+   * @yields {Promise<string>} the command being executed
    */
   public async *[Symbol.asyncIterator](): AsyncIterableIterator<string> {
     while (!this.abortController.signal.aborted) {
