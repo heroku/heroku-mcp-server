@@ -87,6 +87,6 @@
     "test": "nyc mocha --forbid-only",
     "exec-perms": "shx chmod +x dist/*.js",
     "test:watch": "nyc mocha --watch --forbid-only",
-    "publish": "npm run build && npm run build:mcpb && npm publish"
+    "prepublishOnly": "npm run build && npm run build:mcpb"
   }
 }
