@@ -31,7 +31,7 @@
     "@typescript-eslint/parser": "^8.55.0",
     "chai": "^6.2.2",
     "eslint": "^9.39.2",
-    "eslint-config-salesforce-typescript": "^3.4.0",
+    "eslint-config-salesforce-typescript": "^4.0.1",
     "eslint-plugin-jsdoc": "^62.5.4",
     "husky": "^9.1.7",
     "mocha": "^11.1.0",
