@@ -12,16 +12,21 @@ Learn more about [Conventional Commits](https://www.conventionalcommits.org/).
 -->
 
 ## Summary
+
 <!-- Brief description of the changes in this PR. -->
 
 ## Type of Change
+
 ### Breaking Changes (major semver update)
+
 - [ ] Add a `!` after your change type to denote a change that breaks current behavior
 
 ### Feature Additions (minor semver update)
+
 - [ ] **feat**: Introduces a new feature to the codebase
 
 ### Patch Updates (patch semver update)
+
 - [ ] **fix**: Bug fix
 - [ ] **deps**: Dependency upgrade
 - [ ] **revert**: Revert a previous commit
@@ -30,15 +35,18 @@ Learn more about [Conventional Commits](https://www.conventionalcommits.org/).
 - [ ] **test**: Add/update/remove tests
 
 ## Testing
-**Notes**: 
+
+**Notes**:
+
 <!-- Add any context/setup necessary for testing. -->
 
 **Steps**:
+
 1. Replace this text with a list of steps used to validate changes or type 'Passing CI suffices'.
 2. ...
 
 ## Screenshots (if applicable)
 
 ## Related Issues
-GitHub issue: #[GitHub issue number]
-GUS work item: [WI number](WI link)
+
+GitHub issue: #[GitHub issue number] GUS work item: [WI number](WI link)

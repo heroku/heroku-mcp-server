@@ -391,7 +391,6 @@ functional breakpoints in the code:
 To set up local debugging with breakpoints:
 
 1. Store your Heroku auth token in the VS Code user settings:
-
    - Open the Command Palette (Cmd/Ctrl + Shift + P).
    - Type `Preferences: Open User Settings (JSON)`.
    - Add the following snippet:
