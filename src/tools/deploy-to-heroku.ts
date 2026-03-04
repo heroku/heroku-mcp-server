@@ -357,7 +357,6 @@ export class DeployToHeroku extends AbortController {
         rejectUnauthorized: true,
         showStatus: true,
         onStatusChange: (status: string): void => {
-          // eslint-disable-next-line no-console
           console.log(`Dyno status: ${status}`);
         }
       });
@@ -371,7 +370,6 @@ export class DeployToHeroku extends AbortController {
           try {
             await this.dynoService.stop(name, dyno.id!, this.requestInit);
           } catch (error) {
-            // eslint-disable-next-line no-console
             console.warn('Failed to stop dyno:', error);
           }
         };
