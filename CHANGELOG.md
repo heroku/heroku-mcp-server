@@ -7,10 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.2.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.1.0...mcp-server-v1.2.0) (2026-02-18)
 
-
 ### Features
 
-* add plugin installation detection and handle command not found errors ([#146](https://github.com/heroku/heroku-mcp-server/issues/146)) ([8ab7898](https://github.com/heroku/heroku-mcp-server/commit/8ab78985edf524a81f42d480e30458879d025ca5))
+- add plugin installation detection and handle command not found errors
+  ([#146](https://github.com/heroku/heroku-mcp-server/issues/146))
+  ([8ab7898](https://github.com/heroku/heroku-mcp-server/commit/8ab78985edf524a81f42d480e30458879d025ca5))
 
 ## [1.1.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.0.7...mcp-server-v1.1.0) (2026-01-16)
 
