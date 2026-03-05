@@ -30,9 +30,9 @@
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
     "chai": "^6.2.2",
-    "eslint": "^9.39.2",
-    "eslint-config-salesforce-typescript": "^3.4.0",
-    "eslint-plugin-jsdoc": "^62.5.4",
+    "eslint": "^9",
+    "eslint-config-oclif": "^6.0.144",
+    "eslint-plugin-mocha": "^11.2.0",
     "husky": "^9.1.7",
     "mocha": "^11.1.0",
     "nyc": "^17.1.0",
@@ -79,7 +79,7 @@
     "build:mcpb": "mcpb pack",
     "start": "node bin/heroku-mcp-server.mjs",
     "format": "prettier . --write --config ./.prettier.mjs",
-    "lint": "cd src && eslint ./",
+    "lint": "eslint .",
     "posttest": "npm run lint",
     "prepare": "husky",
     "pretest": "npm run build",
@@ -88,5 +88,9 @@
     "exec-perms": "shx chmod +x dist/*.js",
     "test:watch": "nyc mocha --watch --forbid-only",
     "prepublishOnly": "npm run build && npm run build:mcpb"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3",
+    "tmp": "^0.2.5"
   }
 }
