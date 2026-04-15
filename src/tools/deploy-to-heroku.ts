@@ -71,6 +71,36 @@ export type OneOffDynoResult = {
   errorMessage?: string;
 };
 
+export const MAX_SOURCE_RELATIVE_PATH_LENGTH = 512;
+
+const SAFE_SOURCE_PATH_SEGMENT = /^[a-zA-Z0-9._-]+$/;
+
+/** True if {@link relativePath} may be used unquoted in a POSIX shell `> path` redirect when staging one-off sources. */
+export function isSafeSourceRelativePath(relativePath: string): boolean {
+  if (relativePath.length === 0 || relativePath.length > MAX_SOURCE_RELATIVE_PATH_LENGTH) {
+    return false;
+  }
+  if (relativePath.includes('\0') || relativePath.includes('\n') || relativePath.includes('\r')) {
+    return false;
+  }
+  if (relativePath.startsWith('/')) {
+    return false;
+  }
+  const normalized = relativePath.replace(/^\.\/+/, '');
+  if (normalized.length === 0) {
+    return false;
+  }
+  for (const segment of normalized.split('/')) {
+    if (segment.length === 0 || segment === '.' || segment === '..') {
+      return false;
+    }
+    if (!SAFE_SOURCE_PATH_SEGMENT.test(segment)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * The DeploymentError class is used when
  * an error occurs during the deployment of
@@ -321,6 +351,14 @@ export class DeployToHeroku extends AbortController {
       // If sources are provided, pack them and modify the command
       let finalCommand = command;
       if (sources?.length) {
+        for (const source of sources) {
+          if (!isSafeSourceRelativePath(source.relativePath)) {
+            throw new Error(
+              'Invalid source.relativePath: use a relative virtual path with only letters, digits, ' +
+                '`.`, `_`, `-`, and `/` between segments; no `..`, no leading `/`, and no shell metacharacters.'
+            );
+          }
+        }
         const commands = [
           'TEMP_DIR=$(mktemp -d)',
           'cd $TEMP_DIR',
@@ -646,7 +684,16 @@ export const deployOneOffDynoSchema = z
     sources: z
       .array(
         z.object({
-          relativePath: z.string().describe('Virtual path for tarball entry.'),
+          relativePath: z
+            .string()
+            .min(1)
+            .max(MAX_SOURCE_RELATIVE_PATH_LENGTH)
+            .refine(isSafeSourceRelativePath, {
+              message:
+                'Invalid source.relativePath: relative virtual path must use only letters, digits, `.`, `_`, ' +
+                '`-`, and `/` between segments; no `..`, no leading `/`, and no shell metacharacters.'
+            })
+            .describe('Relative virtual path for each staged source file (strict character set).'),
           contents: z.string().describe('File contents.')
         })
       )
