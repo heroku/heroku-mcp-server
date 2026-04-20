@@ -7,10 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.2.1](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.0...mcp-server-v1.2.1) (2026-03-17)
 
-
 ### Miscellaneous Chores
 
-* release 1.2.1 ([#178](https://github.com/heroku/heroku-mcp-server/issues/178)) ([8316f13](https://github.com/heroku/heroku-mcp-server/commit/8316f1346cc95cc7d9df1ad21261f10edab74043))
+- release 1.2.1 ([#178](https://github.com/heroku/heroku-mcp-server/issues/178))
+  ([8316f13](https://github.com/heroku/heroku-mcp-server/commit/8316f1346cc95cc7d9df1ad21261f10edab74043))
 
 ## [1.2.0](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.1.0...mcp-server-v1.2.0) (2026-02-18)
 
