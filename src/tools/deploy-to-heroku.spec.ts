@@ -8,7 +8,7 @@ import {
   DeployToHeroku,
   isSafeSourceRelativePath,
   MAX_SOURCE_RELATIVE_PATH_LENGTH,
-  OneOffDynoConfig,
+  OneOffDynoConfig
 } from './deploy-to-heroku.js';
 import AppService from '../services/app-service.js';
 import SourceService from '../services/source-service.js';
