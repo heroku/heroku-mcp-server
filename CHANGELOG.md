@@ -5,6 +5,13 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.2](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.1...mcp-server-v1.2.2) (2026-04-22)
+
+
+### Bug Fixes
+
+* validate one-off dyno source paths before shell staging ([#192](https://github.com/heroku/heroku-mcp-server/issues/192)) ([b523109](https://github.com/heroku/heroku-mcp-server/commit/b5231090b0c97ceceab8ec7fcf43af84fefade20))
+
 ## [1.2.1](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.0...mcp-server-v1.2.1) (2026-03-17)
 
 ### Miscellaneous Chores
