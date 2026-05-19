@@ -9,7 +9,7 @@ updates:
       day: 'sunday'
       timezone: 'America/Los_Angeles'
     commit-message:
-      prefix: 'deps'
+      prefix: 'deps(dev)'
   - package-ecosystem: 'npm'
     directory: '/'
     open-pull-requests-limit: 5
@@ -20,9 +20,13 @@ updates:
       timezone: 'America/Los_Angeles'
     commit-message:
       prefix: 'deps'
+      prefix-development: 'deps(dev)'
     groups:
       dev-patch-minor-dependencies:
         dependency-type: 'development'
         update-types:
           - 'patch'
           - 'minor'
+    ignore:
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
