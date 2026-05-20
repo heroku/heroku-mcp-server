@@ -1,16 +1,16 @@
-import { registerMaintenanceOnTool, registerMaintenanceOffTool } from './maintenance.js';
+import { registerMaintenanceOnTool, registerMaintenanceOffTool, MaintenanceSdk } from './maintenance.js';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
-import herokuSdk from '../utils/heroku-sdk.js';
 
 describe('Maintenance Tools', () => {
-  let enableStub: sinon.SinonStub;
-  let disableStub: sinon.SinonStub;
+  let sdk: { enableMaintenance: sinon.SinonStub; disableMaintenance: sinon.SinonStub };
 
   beforeEach(() => {
-    enableStub = sinon.stub(herokuSdk, 'enableMaintenanceMode');
-    disableStub = sinon.stub(herokuSdk, 'disableMaintenanceMode');
+    sdk = {
+      enableMaintenance: sinon.stub(),
+      disableMaintenance: sinon.stub()
+    };
   });
 
   afterEach(() => {
@@ -23,7 +23,7 @@ describe('Maintenance Tools', () => {
 
     beforeEach(() => {
       mocks = setupMcpToolMocks();
-      registerMaintenanceOnTool(mocks.server);
+      registerMaintenanceOnTool(mocks.server, sdk as MaintenanceSdk);
       toolCallback = mocks.getToolCallback();
     });
 
@@ -37,15 +37,15 @@ describe('Maintenance Tools', () => {
       expect(tool.firstCall.args[3]).to.be.a('function');
     });
 
-    it('should call enableMaintenanceMode with the app name', async () => {
-      enableStub.resolves({ name: 'myapp', maintenance: true });
+    it('should call enableMaintenance with the app name', async () => {
+      sdk.enableMaintenance.resolves({ name: 'myapp', maintenance: true });
 
       await toolCallback({ app: 'myapp' });
-      expect(enableStub.calledOnceWith('myapp')).to.be.true;
+      expect(sdk.enableMaintenance.calledOnceWith('myapp')).to.be.true;
     });
 
     it('should handle successful response', async () => {
-      enableStub.resolves({ name: 'myapp', maintenance: true });
+      sdk.enableMaintenance.resolves({ name: 'myapp', maintenance: true });
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -54,7 +54,7 @@ describe('Maintenance Tools', () => {
     });
 
     it('should handle error response', async () => {
-      enableStub.rejects(new Error('404: Not Found'));
+      sdk.enableMaintenance.rejects(new Error('404: Not Found'));
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -75,7 +75,7 @@ describe('Maintenance Tools', () => {
 
     beforeEach(() => {
       mocks = setupMcpToolMocks();
-      registerMaintenanceOffTool(mocks.server);
+      registerMaintenanceOffTool(mocks.server, sdk as MaintenanceSdk);
       toolCallback = mocks.getToolCallback();
     });
 
@@ -89,15 +89,15 @@ describe('Maintenance Tools', () => {
       expect(tool.firstCall.args[3]).to.be.a('function');
     });
 
-    it('should call disableMaintenanceMode with the app name', async () => {
-      disableStub.resolves({ name: 'myapp', maintenance: false });
+    it('should call disableMaintenance with the app name', async () => {
+      sdk.disableMaintenance.resolves({ name: 'myapp', maintenance: false });
 
       await toolCallback({ app: 'myapp' });
-      expect(disableStub.calledOnceWith('myapp')).to.be.true;
+      expect(sdk.disableMaintenance.calledOnceWith('myapp')).to.be.true;
     });
 
     it('should handle successful response', async () => {
-      disableStub.resolves({ name: 'myapp', maintenance: false });
+      sdk.disableMaintenance.resolves({ name: 'myapp', maintenance: false });
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
@@ -106,7 +106,7 @@ describe('Maintenance Tools', () => {
     });
 
     it('should handle error response', async () => {
-      disableStub.rejects(new Error('404: Not Found'));
+      sdk.disableMaintenance.rejects(new Error('404: Not Found'));
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
