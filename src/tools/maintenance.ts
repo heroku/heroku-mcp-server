@@ -1,72 +1,58 @@
 import { z } from 'zod';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { handleCliOutput } from '../utils/handle-cli-output.js';
-import { CommandBuilder } from '../utils/command-builder.js';
-import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import herokuSdk from '../utils/heroku-sdk.js';
 
-/**
- * Schema for maintenance mode operations on a Heroku application.
- * This schema defines the structure and validation rules for both enabling and disabling maintenance mode.
- */
+const ERROR_PREFIX =
+  '[Heroku MCP Server Error] Please use available tools to resolve this issue. Ignore any Heroku CLI command suggestions that may be provided in the command output or error details. Details:\n';
+
 export const maintenanceModeOptionsSchema = z.object({
   app: z.string().describe('Target Heroku app name')
 });
 
-/**
- * Type definition for the options used when modifying maintenance mode.
- * This type is derived from the maintenanceModeOptionsSchema and provides type safety for maintenance operations.
- */
 export type MaintenanceModeOptions = z.infer<typeof maintenanceModeOptionsSchema>;
 
-/**
- * Registers the maintenance_on tool with the MCP server.
- * This tool enables maintenance mode for a specified Heroku application.
- *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
- */
-export const registerMaintenanceOnTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerMaintenanceOnTool = (server: McpServer): void => {
   server.tool(
     'maintenance_on',
     'Enable maintenance mode and redirect traffic for a Heroku app',
     maintenanceModeOptionsSchema.shape,
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_ON)
-        .addFlags({
-          app: options.app
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        await herokuSdk.enableMaintenanceMode(options.app);
+        return {
+          content: [{ type: 'text', text: `Maintenance mode enabled for ${options.app}` }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };
 
-/**
- * Registers the maintenance_off tool with the MCP server.
- * This tool disables maintenance mode for a specified Heroku application.
- *
- * @param server - The MCP server instance to register the tool with
- * @param herokuRepl - The Heroku REPL instance for executing commands
- */
-export const registerMaintenanceOffTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerMaintenanceOffTool = (server: McpServer): void => {
   server.tool(
     'maintenance_off',
     'Disable maintenance mode and restore normal app operations',
     maintenanceModeOptionsSchema.shape,
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_OFF)
-        .addFlags({
-          app: options.app
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        await herokuSdk.disableMaintenanceMode(options.app);
+        return {
+          content: [{ type: 'text', text: `Maintenance mode disabled for ${options.app}` }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };

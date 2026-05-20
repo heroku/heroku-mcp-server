@@ -10,10 +10,6 @@ export const TOOL_COMMAND_MAP = {
   TRANSFER_APP: 'apps:transfer',
   GET_APP_INFO: 'apps:info',
 
-  // Maintenance mode commands
-  MAINTENANCE_ON: 'maintenance:on',
-  MAINTENANCE_OFF: 'maintenance:off',
-
   // Space-related commands
   LIST_PRIVATE_SPACES: 'spaces',
 
