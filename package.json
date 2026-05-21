@@ -10,7 +10,7 @@
   "type": "module",
   "dependencies": {
     "@heroku-cli/schema": "^2.0.1",
-    "@heroku/sdk": "file:../heroku-sdk",
+    "@heroku/sdk": "github:heroku/heroku-sdk#main",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "cheerio": "^1.2.0",
     "jsonschema": "^1.5.0",
