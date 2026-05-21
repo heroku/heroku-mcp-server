@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
-import { HerokuSDK } from '@heroku/sdk/sdk';
+import { HerokuSDK } from '@heroku/sdk';
 import { appExtensions } from '@heroku/sdk/extensions/platform';
 
 const ERROR_PREFIX =
