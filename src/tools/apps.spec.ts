@@ -16,6 +16,7 @@ import { setupMcpToolMocks } from '../utils/mcp-tool-mocks.spechelper.js';
 describe('apps topic tools', () => {
   let sdk: {
     list: sinon.SinonStub;
+    listOwnedAndCollaborated: sinon.SinonStub;
     listByTeam: sinon.SinonStub;
     info: sinon.SinonStub;
     create: sinon.SinonStub;
@@ -26,6 +27,7 @@ describe('apps topic tools', () => {
   beforeEach(() => {
     sdk = {
       list: sinon.stub(),
+      listOwnedAndCollaborated: sinon.stub(),
       listByTeam: sinon.stub(),
       info: sinon.stub(),
       create: sinon.stub(),
@@ -55,11 +57,22 @@ describe('apps topic tools', () => {
       expect(call.args[2]).to.deep.equal(listAppsOptionsSchema.shape);
     });
 
-    it('calls sdk.list when no team provided', async () => {
+    it('calls sdk.listOwnedAndCollaborated by default', async () => {
       const apps = [{ name: 'app-1' }, { name: 'app-2' }];
-      sdk.list.resolves(apps);
+      sdk.listOwnedAndCollaborated.resolves(apps);
 
       const result = await toolCallback({});
+      expect(sdk.listOwnedAndCollaborated.calledOnce).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify(apps, null, 2) }]
+      });
+    });
+
+    it('calls sdk.list when all is true', async () => {
+      const apps = [{ name: 'app-1' }, { name: 'app-2' }, { name: 'collab-app' }];
+      sdk.list.resolves(apps);
+
+      const result = await toolCallback({ all: true });
       expect(sdk.list.calledOnce).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: JSON.stringify(apps, null, 2) }]
@@ -78,7 +91,7 @@ describe('apps topic tools', () => {
     });
 
     it('handles error response', async () => {
-      sdk.list.rejects(new Error('401: Unauthorized'));
+      sdk.listOwnedAndCollaborated.rejects(new Error('401: Unauthorized'));
 
       const result = await toolCallback({});
       expect(result.isError).to.be.true;

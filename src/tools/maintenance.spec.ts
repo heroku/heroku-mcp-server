@@ -45,11 +45,12 @@ describe('Maintenance Tools', () => {
     });
 
     it('should handle successful response', async () => {
-      sdk.enableMaintenance.resolves({ name: 'myapp', maintenance: true });
+      const response = { name: 'myapp', maintenance: true };
+      sdk.enableMaintenance.resolves(response);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
-        content: [{ type: 'text', text: 'Maintenance mode enabled for myapp' }]
+        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
       });
     });
 
@@ -97,11 +98,12 @@ describe('Maintenance Tools', () => {
     });
 
     it('should handle successful response', async () => {
-      sdk.disableMaintenance.resolves({ name: 'myapp', maintenance: false });
+      const response = { name: 'myapp', maintenance: false };
+      sdk.disableMaintenance.resolves(response);
 
       const result = await toolCallback({ app: 'myapp' });
       expect(result).to.deep.equal({
-        content: [{ type: 'text', text: 'Maintenance mode disabled for myapp' }]
+        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
       });
     });
 
