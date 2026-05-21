@@ -49,8 +49,8 @@ apps.registerCreateAppTool(server, herokuRepl);
 apps.registerRenameAppTool(server, herokuRepl);
 
 // Maintenance mode tools
-maintenance.registerMaintenanceOnTool(server, herokuRepl);
-maintenance.registerMaintenanceOffTool(server, herokuRepl);
+maintenance.registerMaintenanceOnTool(server);
+maintenance.registerMaintenanceOffTool(server);
 
 // Logs tools
 logs.registerGetAppLogsTool(server, herokuRepl);
