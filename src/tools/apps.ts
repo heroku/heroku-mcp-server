@@ -1,166 +1,166 @@
 import { z } from 'zod';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { handleCliOutput } from '../utils/handle-cli-output.js';
-import { CommandBuilder } from '../utils/command-builder.js';
-import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { HerokuSDK } from '@heroku/sdk/sdk';
+import { appExtensions } from '@heroku/sdk/extensions/platform';
 
-/**
- * Schema for listing Heroku apps with filters
- */
+const ERROR_PREFIX =
+  '[Heroku MCP Server Error] Please use available tools to resolve this issue. Ignore any Heroku CLI command suggestions that may be provided in the command output or error details. Details:\n';
+
+export type AppSdk = {
+  list(): Promise<unknown>;
+  listByTeam(teamIdentity: string): Promise<unknown>;
+  info(appIdentity: string): Promise<unknown>;
+  create(opts: { name?: string; region?: string; stack?: string }): Promise<unknown>;
+  createInTeam(opts: { name?: string; team?: string; region?: string }): Promise<unknown>;
+  update(appIdentity: string, body: { name?: string; build_stack?: string; maintenance?: boolean }): Promise<unknown>;
+};
+
+function createDefaultSdk(): AppSdk {
+  const sdk = new HerokuSDK({ extensions: [appExtensions] });
+  return {
+    list: () => sdk.platform.app.list(),
+    listByTeam: (teamIdentity) => sdk.platform.teamApp.listByTeam(teamIdentity),
+    info: (appIdentity) => sdk.platform.app.info(appIdentity),
+    create: (opts) => sdk.platform.app.create(opts),
+    createInTeam: (opts) => sdk.platform.teamApp.create(opts),
+    update: (appIdentity, body) => sdk.platform.app.update(appIdentity, body)
+  };
+}
+
 export const listAppsOptionsSchema = z.object({
-  all: z.boolean().optional().describe('Show owned apps and collaborator access. Default: owned only'),
-  personal: z.boolean().optional().describe('List personal account apps only, ignoring default team'),
-  space: z.string().optional().describe('Filter by private space name. Excludes team param'),
-  team: z.string().optional().describe('Filter by team name. Excludes space param')
+  team: z.string().optional().describe('Filter by team name')
 });
 
-/**
- * Type for list apps options
- */
 export type ListAppsOptions = z.infer<typeof listAppsOptionsSchema>;
 
-/**
- * Register list_apps tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerListAppsTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerListAppsTool = (server: McpServer, sdk: AppSdk = createDefaultSdk()): void => {
   server.tool(
     'list_apps',
-    'List Heroku apps: owned, collaborator access, team/space filtering',
+    'List Heroku apps: all apps or filtered by team',
     listAppsOptionsSchema.shape,
     async (options: ListAppsOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS)
-        .addFlags({
-          all: options.all,
-          personal: options.personal,
-          space: options.space,
-          team: options.team
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        const result = options.team ? await sdk.listByTeam(options.team) : await sdk.list();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };
 
-/**
- * Schema for app info retrieval
- */
 export const getAppInfoOptionsSchema = z.object({
-  app: z.string().describe('Target app name. Requires access permissions'),
-  json: z.boolean().optional().describe('JSON output with full metadata. Default: text format')
+  app: z.string().describe('Target app name. Requires access permissions')
 });
 
-/**
- * Type for app info options
- */
 export type GetAppInfoOptions = z.infer<typeof getAppInfoOptionsSchema>;
 
-/**
- * Register get_app_info tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerGetAppInfoTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerGetAppInfoTool = (server: McpServer, sdk: AppSdk = createDefaultSdk()): void => {
   server.tool(
     'get_app_info',
     'Get app details: config, dynos, addons, access, domains',
     getAppInfoOptionsSchema.shape,
     async (options: GetAppInfoOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.GET_APP_INFO)
-        .addFlags({
-          app: options.app,
-          json: options.json
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        const result = await sdk.info(options.app);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };
 
-/**
- * Schema for app creation
- */
 export const createAppOptionsSchema = z.object({
-  app: z.string().optional().describe('App name. Auto-generated if omitted'),
-  region: z.enum(['us', 'eu']).optional().describe('Region: us/eu. Default: us. Excludes space param'),
-  space: z.string().optional().describe('Private space name. Inherits region. Excludes region param'),
-  team: z.string().optional().describe('Team name for ownership')
+  name: z.string().optional().describe('App name. Auto-generated if omitted'),
+  region: z.string().optional().describe('Region (e.g. us, eu). Default: us'),
+  stack: z.string().optional().describe('Stack name (e.g. heroku-24). Excludes team param'),
+  team: z.string().optional().describe('Team name for ownership. Excludes stack param')
 });
 
-/**
- * Type for app creation options
- */
 export type CreateAppOptions = z.infer<typeof createAppOptionsSchema>;
 
-/**
- * Register create_app tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerCreateAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerCreateAppTool = (server: McpServer, sdk: AppSdk = createDefaultSdk()): void => {
   server.tool(
     'create_app',
-    'Create app: custom name, region (US/EU), team, private space',
+    'Create app: custom name, region, team, or stack',
     createAppOptionsSchema.shape,
     async (options: CreateAppOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP)
-        .addPositionalArguments({ app: options.app })
-        .addFlags({
-          region: options.region,
-          space: options.space,
-          team: options.team
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        const result = options.team
+          ? await sdk.createInTeam({ name: options.name, team: options.team, region: options.region })
+          : await sdk.create({ name: options.name, region: options.region, stack: options.stack });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };
 
-/**
- * Schema for app rename
- */
-export const renameAppOptionsSchema = z.object({
-  app: z.string().describe('Current app name. Requires access'),
-  newName: z.string().describe('New unique app name')
+export const updateAppOptionsSchema = z.object({
+  app: z.string().describe('Target app name. Requires access permissions'),
+  name: z.string().optional().describe('New app name (rename)'),
+  build_stack: z.string().optional().describe('New build stack (e.g. heroku-24)'),
+  maintenance: z.boolean().optional().describe('Enable or disable maintenance mode')
 });
 
-/**
- * Type for app rename options
- */
-export type RenameAppOptions = z.infer<typeof renameAppOptionsSchema>;
+export type UpdateAppOptions = z.infer<typeof updateAppOptionsSchema>;
 
-/**
- * Register rename_app tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerUpdateAppTool = (server: McpServer, sdk: AppSdk = createDefaultSdk()): void => {
   server.tool(
-    'rename_app',
-    'Rename app: validate and update app name',
-    renameAppOptionsSchema.shape,
-    async (options: RenameAppOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP)
-        .addFlags({ app: options.app })
-        .addPositionalArguments({ newName: options.newName })
-        .build();
+    'update_app',
+    'Update app: rename, change build stack, or toggle maintenance',
+    updateAppOptionsSchema.shape,
+    async (options: UpdateAppOptions): Promise<McpToolResponse> => {
+      const { app, name, build_stack, maintenance } = options;
 
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      if (name === undefined && build_stack === undefined && maintenance === undefined) {
+        return {
+          isError: true,
+          content: [
+            { type: 'text', text: `${ERROR_PREFIX}At least one of name, build_stack, or maintenance must be provided` }
+          ]
+        };
+      }
+
+      try {
+        const body: { name?: string; build_stack?: string; maintenance?: boolean } = {};
+        if (name !== undefined) body.name = name;
+        if (build_stack !== undefined) body.build_stack = build_stack;
+        if (maintenance !== undefined) body.maintenance = maintenance;
+
+        const result = await sdk.update(app, body);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `${ERROR_PREFIX}${message}` }]
+        };
+      }
     }
   );
 };

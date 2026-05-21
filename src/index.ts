@@ -43,10 +43,10 @@ herokuRepl.on('fatalError', (mcpError) => {
 });
 
 // App-related tools
-apps.registerListAppsTool(server, herokuRepl);
-apps.registerGetAppInfoTool(server, herokuRepl);
-apps.registerCreateAppTool(server, herokuRepl);
-apps.registerRenameAppTool(server, herokuRepl);
+apps.registerListAppsTool(server);
+apps.registerGetAppInfoTool(server);
+apps.registerCreateAppTool(server);
+apps.registerUpdateAppTool(server);
 
 // Maintenance mode tools
 maintenance.registerMaintenanceOnTool(server);
