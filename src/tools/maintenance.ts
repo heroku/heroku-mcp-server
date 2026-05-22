@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { App } from '@heroku/types/3.sdk';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
 import { formatToolError } from '../utils/format-tool-error.js';
@@ -11,8 +12,8 @@ export const maintenanceModeOptionsSchema = z.object({
 export type MaintenanceModeOptions = z.infer<typeof maintenanceModeOptionsSchema>;
 
 export type MaintenanceSdk = {
-  enableMaintenance(appIdentity: string): Promise<unknown>;
-  disableMaintenance(appIdentity: string): Promise<unknown>;
+  enableMaintenance(appIdentity: string): Promise<App>;
+  disableMaintenance(appIdentity: string): Promise<App>;
 };
 
 export const registerMaintenanceOnTool = (server: McpServer, sdk: MaintenanceSdk): void => {
