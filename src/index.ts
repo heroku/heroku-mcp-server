@@ -20,8 +20,6 @@ import { HerokuREPL } from './repl/heroku-cli-repl.js';
 import { isPluginInstalled } from './utils/plugin-detector.js';
 import { HerokuSDK } from '@heroku/sdk';
 import { appExtensions } from '@heroku/sdk/extensions/platform';
-import { AppSdk } from './tools/apps.js';
-import { MaintenanceSdk } from './tools/maintenance.js';
 
 const VERSION = pjson.default.version;
 
@@ -42,7 +40,7 @@ const herokuRepl = new HerokuREPL(requestTimeout);
 
 const herokuSdk = new HerokuSDK({ extensions: [appExtensions] });
 
-const appSdk: AppSdk = {
+const appSdk: apps.AppSdk = {
   list: () => herokuSdk.platform.app.list(),
   listOwnedAndCollaborated: () => herokuSdk.platform.app.listOwnedAndCollaborated('~'),
   listByTeam: (teamIdentity) => herokuSdk.platform.teamApp.listByTeam(teamIdentity),
@@ -52,7 +50,7 @@ const appSdk: AppSdk = {
   update: (appIdentity, body) => herokuSdk.platform.app.update(appIdentity, body)
 };
 
-const maintenanceSdk: MaintenanceSdk = {
+const maintenanceSdk: maintenance.MaintenanceSdk = {
   enableMaintenance: (appIdentity) => herokuSdk.platform.app.enableMaintenance(appIdentity),
   disableMaintenance: (appIdentity) => herokuSdk.platform.app.disableMaintenance(appIdentity)
 };
