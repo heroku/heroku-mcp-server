@@ -1,166 +1,160 @@
 import { z } from 'zod';
 
+import type { App, TeamApp } from '@heroku/types/3.sdk';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { handleCliOutput } from '../utils/handle-cli-output.js';
-import { CommandBuilder } from '../utils/command-builder.js';
-import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
-import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { formatToolError } from '../utils/format-tool-error.js';
 
-/**
- * Schema for listing Heroku apps with filters
- */
+export type AppSdk = {
+  list(): Promise<App[]>;
+  listOwnedAndCollaborated(): Promise<App[]>;
+  listByTeam(teamIdentity: string): Promise<TeamApp[]>;
+  info(appIdentity: string): Promise<App>;
+  create(opts: { name?: string; region?: string; stack?: string }): Promise<App>;
+  createInTeam(opts: { name?: string; team?: string; region?: string; stack?: string }): Promise<TeamApp>;
+  update(appIdentity: string, body: { name?: string; build_stack?: string; maintenance?: boolean }): Promise<App>;
+};
+
 export const listAppsOptionsSchema = z.object({
-  all: z.boolean().optional().describe('Show owned apps and collaborator access. Default: owned only'),
-  personal: z.boolean().optional().describe('List personal account apps only, ignoring default team'),
-  space: z.string().optional().describe('Filter by private space name. Excludes team param'),
-  team: z.string().optional().describe('Filter by team name. Excludes space param')
+  all: z
+    .boolean()
+    .optional()
+    .describe('Include all apps accessible to the account. Default: owned and collaborated only'),
+  team: z.string().optional().describe('Filter by team name'),
+  personal: z
+    .boolean()
+    .optional()
+    .describe('Show only personal-account apps (owned and collaborated, excludes team apps)'),
+  space: z.string().optional().describe('Filter by private space name')
 });
 
-/**
- * Type for list apps options
- */
 export type ListAppsOptions = z.infer<typeof listAppsOptionsSchema>;
 
-/**
- * Register list_apps tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerListAppsTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerListAppsTool = (server: McpServer, sdk: AppSdk): void => {
   server.tool(
     'list_apps',
-    'List Heroku apps: owned, collaborator access, team/space filtering',
+    'List Heroku apps: owned and collaborated, all, or filtered by team, personal account, or private space',
     listAppsOptionsSchema.shape,
     async (options: ListAppsOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS)
-        .addFlags({
-          all: options.all,
-          personal: options.personal,
-          space: options.space,
-          team: options.team
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        let result: App[] | TeamApp[];
+        if (options.space) {
+          const allApps = await sdk.list();
+          result = allApps.filter((app) => app.space?.name === options.space);
+        } else if (options.personal) {
+          result = await sdk.listOwnedAndCollaborated();
+        } else if (options.team) {
+          result = await sdk.listByTeam(options.team);
+        } else if (options.all) {
+          result = await sdk.list();
+        } else {
+          result = await sdk.listOwnedAndCollaborated();
+        }
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        return formatToolError(error);
+      }
     }
   );
 };
 
-/**
- * Schema for app info retrieval
- */
 export const getAppInfoOptionsSchema = z.object({
-  app: z.string().describe('Target app name. Requires access permissions'),
-  json: z.boolean().optional().describe('JSON output with full metadata. Default: text format')
+  app: z.string().describe('Target app name. Requires access permissions')
 });
 
-/**
- * Type for app info options
- */
 export type GetAppInfoOptions = z.infer<typeof getAppInfoOptionsSchema>;
 
-/**
- * Register get_app_info tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerGetAppInfoTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerGetAppInfoTool = (server: McpServer, sdk: AppSdk): void => {
   server.tool(
     'get_app_info',
     'Get app details: config, dynos, addons, access, domains',
     getAppInfoOptionsSchema.shape,
     async (options: GetAppInfoOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.GET_APP_INFO)
-        .addFlags({
-          app: options.app,
-          json: options.json
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        const result = await sdk.info(options.app);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        return formatToolError(error);
+      }
     }
   );
 };
 
-/**
- * Schema for app creation
- */
 export const createAppOptionsSchema = z.object({
-  app: z.string().optional().describe('App name. Auto-generated if omitted'),
-  region: z.enum(['us', 'eu']).optional().describe('Region: us/eu. Default: us. Excludes space param'),
-  space: z.string().optional().describe('Private space name. Inherits region. Excludes region param'),
+  name: z.string().optional().describe('App name. Auto-generated if omitted'),
+  region: z.string().optional().describe('Region (e.g. us, eu). Default: us'),
+  stack: z.string().optional().describe('Stack name (e.g. heroku-24)'),
   team: z.string().optional().describe('Team name for ownership')
 });
 
-/**
- * Type for app creation options
- */
 export type CreateAppOptions = z.infer<typeof createAppOptionsSchema>;
 
-/**
- * Register create_app tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerCreateAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerCreateAppTool = (server: McpServer, sdk: AppSdk): void => {
   server.tool(
     'create_app',
-    'Create app: custom name, region (US/EU), team, private space',
+    'Create app: custom name, region, team, or stack',
     createAppOptionsSchema.shape,
     async (options: CreateAppOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP)
-        .addPositionalArguments({ app: options.app })
-        .addFlags({
-          region: options.region,
-          space: options.space,
-          team: options.team
-        })
-        .build();
-
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      try {
+        const result = options.team
+          ? await sdk.createInTeam({
+              name: options.name,
+              team: options.team,
+              region: options.region,
+              stack: options.stack
+            })
+          : await sdk.create({ name: options.name, region: options.region, stack: options.stack });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        return formatToolError(error);
+      }
     }
   );
 };
 
-/**
- * Schema for app rename
- */
-export const renameAppOptionsSchema = z.object({
-  app: z.string().describe('Current app name. Requires access'),
-  newName: z.string().describe('New unique app name')
+export const updateAppOptionsSchema = z.object({
+  app: z.string().describe('Target app name. Requires access permissions'),
+  name: z.string().optional().describe('New app name (rename)'),
+  build_stack: z.string().optional().describe('New build stack (e.g. heroku-24)'),
+  maintenance: z.boolean().optional().describe('Enable or disable maintenance mode')
 });
 
-/**
- * Type for app rename options
- */
-export type RenameAppOptions = z.infer<typeof renameAppOptionsSchema>;
+export type UpdateAppOptions = z.infer<typeof updateAppOptionsSchema>;
 
-/**
- * Register rename_app tool
- *
- * @param server MCP server instance
- * @param herokuRepl Heroku REPL instance
- */
-export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL): void => {
+export const registerUpdateAppTool = (server: McpServer, sdk: AppSdk): void => {
   server.tool(
-    'rename_app',
-    'Rename app: validate and update app name',
-    renameAppOptionsSchema.shape,
-    async (options: RenameAppOptions): Promise<McpToolResponse> => {
-      const command = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP)
-        .addFlags({ app: options.app })
-        .addPositionalArguments({ newName: options.newName })
-        .build();
+    'update_app',
+    'Update app: rename, change build stack, or toggle maintenance',
+    updateAppOptionsSchema.shape,
+    async (options: UpdateAppOptions): Promise<McpToolResponse> => {
+      const { app, name, build_stack, maintenance } = options;
 
-      const output = await herokuRepl.executeCommand(command);
-      return handleCliOutput(output);
+      if (name === undefined && build_stack === undefined && maintenance === undefined) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'At least one of name, build_stack, or maintenance must be provided' }]
+        };
+      }
+
+      try {
+        const body: { name?: string; build_stack?: string; maintenance?: boolean } = {};
+        if (name !== undefined) body.name = name;
+        if (build_stack !== undefined) body.build_stack = build_stack;
+        if (maintenance !== undefined) body.maintenance = maintenance;
+
+        const result = await sdk.update(app, body);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error: unknown) {
+        return formatToolError(error);
+      }
     }
   );
 };

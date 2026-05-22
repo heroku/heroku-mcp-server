@@ -18,6 +18,8 @@ import * as devCenterResource from './resources/dev-center-resource.js';
 
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
 import { isPluginInstalled } from './utils/plugin-detector.js';
+import { HerokuSDK } from '@heroku/sdk';
+import { appExtensions } from '@heroku/sdk/extensions/platform';
 
 const VERSION = pjson.default.version;
 
@@ -36,6 +38,23 @@ const requestTimeout = isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT))
   : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT);
 const herokuRepl = new HerokuREPL(requestTimeout);
 
+const herokuSdk = new HerokuSDK({ extensions: [appExtensions] });
+
+const appSdk: apps.AppSdk = {
+  list: () => herokuSdk.platform.app.list(),
+  listOwnedAndCollaborated: () => herokuSdk.platform.app.listOwnedAndCollaborated('~'),
+  listByTeam: (teamIdentity) => herokuSdk.platform.teamApp.listByTeam(teamIdentity),
+  info: (appIdentity) => herokuSdk.platform.app.info(appIdentity),
+  create: (opts) => herokuSdk.platform.app.create(opts),
+  createInTeam: (opts) => herokuSdk.platform.teamApp.create(opts),
+  update: (appIdentity, body) => herokuSdk.platform.app.update(appIdentity, body)
+};
+
+const maintenanceSdk: maintenance.MaintenanceSdk = {
+  enableMaintenance: (appIdentity) => herokuSdk.platform.app.enableMaintenance(appIdentity),
+  disableMaintenance: (appIdentity) => herokuSdk.platform.app.disableMaintenance(appIdentity)
+};
+
 // Listen for MCP-formatted fatal startup errors
 herokuRepl.on('fatalError', (mcpError) => {
   process.stderr.write(JSON.stringify(mcpError) + '\n');
@@ -43,14 +62,14 @@ herokuRepl.on('fatalError', (mcpError) => {
 });
 
 // App-related tools
-apps.registerListAppsTool(server, herokuRepl);
-apps.registerGetAppInfoTool(server, herokuRepl);
-apps.registerCreateAppTool(server, herokuRepl);
-apps.registerRenameAppTool(server, herokuRepl);
+apps.registerListAppsTool(server, appSdk);
+apps.registerGetAppInfoTool(server, appSdk);
+apps.registerCreateAppTool(server, appSdk);
+apps.registerUpdateAppTool(server, appSdk);
 
 // Maintenance mode tools
-maintenance.registerMaintenanceOnTool(server);
-maintenance.registerMaintenanceOffTool(server);
+maintenance.registerMaintenanceOnTool(server, maintenanceSdk);
+maintenance.registerMaintenanceOffTool(server, maintenanceSdk);
 
 // Logs tools
 logs.registerGetAppLogsTool(server, herokuRepl);
