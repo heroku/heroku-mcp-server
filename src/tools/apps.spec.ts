@@ -176,6 +176,29 @@ describe('apps topic tools', () => {
       });
     });
 
+    it('calls sdk.createInTeam with stack when both team and stack provided', async () => {
+      const app = { name: 'team-app', team: { name: 'my-team' }, stack: { name: 'heroku-24' } };
+      sdk.createInTeam.resolves(app);
+
+      const result = await toolCallback({
+        name: 'team-app',
+        team: 'my-team',
+        region: 'eu',
+        stack: 'heroku-24'
+      });
+      expect(
+        sdk.createInTeam.calledOnceWith({
+          name: 'team-app',
+          team: 'my-team',
+          region: 'eu',
+          stack: 'heroku-24'
+        })
+      ).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify(app, null, 2) }]
+      });
+    });
+
     it('calls sdk.create with no options for auto-generated name', async () => {
       const app = { name: 'frozen-badlands-12345' };
       sdk.create.resolves(app);
@@ -249,7 +272,8 @@ describe('apps topic tools', () => {
     it('returns error when no update fields provided', async () => {
       const result = await toolCallback({ app: 'my-app' });
       expect(result.isError).to.be.true;
-      expect(result.content[0].text).to.include('At least one of name, build_stack, or maintenance must be provided');
+      expect(result.content[0].text).to.equal('At least one of name, build_stack, or maintenance must be provided');
+      expect(result.content[0].text).to.not.include('[Heroku MCP Server Error]');
       expect(sdk.update.called).to.be.false;
     });
 
