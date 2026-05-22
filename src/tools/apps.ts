@@ -1,17 +1,18 @@
 import { z } from 'zod';
 
+import type { App, TeamApp } from '@heroku/types/3.sdk';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
 import { formatToolError } from '../utils/format-tool-error.js';
 
 export type AppSdk = {
-  list(): Promise<unknown>;
-  listOwnedAndCollaborated(): Promise<unknown>;
-  listByTeam(teamIdentity: string): Promise<unknown>;
-  info(appIdentity: string): Promise<unknown>;
-  create(opts: { name?: string; region?: string; stack?: string }): Promise<unknown>;
-  createInTeam(opts: { name?: string; team?: string; region?: string; stack?: string }): Promise<unknown>;
-  update(appIdentity: string, body: { name?: string; build_stack?: string; maintenance?: boolean }): Promise<unknown>;
+  list(): Promise<App[]>;
+  listOwnedAndCollaborated(): Promise<App[]>;
+  listByTeam(teamIdentity: string): Promise<TeamApp[]>;
+  info(appIdentity: string): Promise<App>;
+  create(opts: { name?: string; region?: string; stack?: string }): Promise<App>;
+  createInTeam(opts: { name?: string; team?: string; region?: string; stack?: string }): Promise<TeamApp>;
+  update(appIdentity: string, body: { name?: string; build_stack?: string; maintenance?: boolean }): Promise<App>;
 };
 
 export const listAppsOptionsSchema = z.object({
@@ -19,7 +20,12 @@ export const listAppsOptionsSchema = z.object({
     .boolean()
     .optional()
     .describe('Include all apps accessible to the account. Default: owned and collaborated only'),
-  team: z.string().optional().describe('Filter by team name')
+  team: z.string().optional().describe('Filter by team name'),
+  personal: z
+    .boolean()
+    .optional()
+    .describe('Show only personal-account apps (owned and collaborated, excludes team apps)'),
+  space: z.string().optional().describe('Filter by private space name')
 });
 
 export type ListAppsOptions = z.infer<typeof listAppsOptionsSchema>;
@@ -27,12 +33,17 @@ export type ListAppsOptions = z.infer<typeof listAppsOptionsSchema>;
 export const registerListAppsTool = (server: McpServer, sdk: AppSdk): void => {
   server.tool(
     'list_apps',
-    'List Heroku apps: owned and collaborated, all, or filtered by team',
+    'List Heroku apps: owned and collaborated, all, or filtered by team, personal account, or private space',
     listAppsOptionsSchema.shape,
     async (options: ListAppsOptions): Promise<McpToolResponse> => {
       try {
-        let result;
-        if (options.team) {
+        let result: App[] | TeamApp[];
+        if (options.space) {
+          const allApps = await sdk.list();
+          result = allApps.filter((app) => app.space?.name === options.space);
+        } else if (options.personal) {
+          result = await sdk.listOwnedAndCollaborated();
+        } else if (options.team) {
           result = await sdk.listByTeam(options.team);
         } else if (options.all) {
           result = await sdk.list();
@@ -94,7 +105,7 @@ export const registerCreateAppTool = (server: McpServer, sdk: AppSdk): void => {
               name: options.name,
               team: options.team,
               region: options.region,
-              ...(options.stack !== undefined && { stack: options.stack })
+              stack: options.stack
             })
           : await sdk.create({ name: options.name, region: options.region, stack: options.stack });
         return {

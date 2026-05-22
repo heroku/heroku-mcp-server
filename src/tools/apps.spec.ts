@@ -90,6 +90,65 @@ describe('apps topic tools', () => {
       });
     });
 
+    it('calls sdk.listOwnedAndCollaborated when personal is true', async () => {
+      const apps = [{ name: 'personal-app-1' }];
+      sdk.listOwnedAndCollaborated.resolves(apps);
+
+      const result = await toolCallback({ personal: true });
+      expect(sdk.listOwnedAndCollaborated.calledOnce).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify(apps, null, 2) }]
+      });
+    });
+
+    it('personal overrides team', async () => {
+      const apps = [{ name: 'personal-app-1' }];
+      sdk.listOwnedAndCollaborated.resolves(apps);
+
+      const result = await toolCallback({ personal: true, team: 'my-team' });
+      expect(sdk.listOwnedAndCollaborated.calledOnce).to.be.true;
+      expect(sdk.listByTeam.called).to.be.false;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify(apps, null, 2) }]
+      });
+    });
+
+    it('calls sdk.list and filters by space when space is provided', async () => {
+      const allApps = [
+        { name: 'space-app', space: { id: 's1', name: 'my-space' } },
+        { name: 'other-app', space: { id: 's2', name: 'other-space' } },
+        { name: 'no-space-app', space: null }
+      ];
+      sdk.list.resolves(allApps);
+
+      const result = await toolCallback({ space: 'my-space' });
+      expect(sdk.list.calledOnce).to.be.true;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify([allApps[0]], null, 2) }]
+      });
+    });
+
+    it('space takes precedence over team', async () => {
+      const allApps = [{ name: 'space-app', space: { id: 's1', name: 'my-space' } }];
+      sdk.list.resolves(allApps);
+
+      const result = await toolCallback({ space: 'my-space', team: 'my-team' });
+      expect(sdk.list.calledOnce).to.be.true;
+      expect(sdk.listByTeam.called).to.be.false;
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify(allApps, null, 2) }]
+      });
+    });
+
+    it('returns empty when space matches no apps', async () => {
+      sdk.list.resolves([{ name: 'app1', space: null }]);
+
+      const result = await toolCallback({ space: 'nonexistent-space' });
+      expect(result).to.deep.equal({
+        content: [{ type: 'text', text: JSON.stringify([], null, 2) }]
+      });
+    });
+
     it('handles error response', async () => {
       sdk.listOwnedAndCollaborated.rejects(new Error('401: Unauthorized'));
 
@@ -170,7 +229,14 @@ describe('apps topic tools', () => {
       sdk.createInTeam.resolves(app);
 
       const result = await toolCallback({ name: 'team-app', team: 'my-team', region: 'eu' });
-      expect(sdk.createInTeam.calledOnceWith({ name: 'team-app', team: 'my-team', region: 'eu' })).to.be.true;
+      expect(
+        sdk.createInTeam.calledOnceWith({
+          name: 'team-app',
+          team: 'my-team',
+          region: 'eu',
+          stack: undefined
+        })
+      ).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: JSON.stringify(app, null, 2) }]
       });

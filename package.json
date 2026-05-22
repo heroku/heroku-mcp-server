@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
+    "@heroku/types": "github:heroku/heroku-types#main",
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
     "@types/chai": "^5.2.1",
