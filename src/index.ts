@@ -19,7 +19,7 @@ import * as devCenterResource from './resources/dev-center-resource.js';
 import { HerokuREPL } from './repl/heroku-cli-repl.js';
 import { isPluginInstalled } from './utils/plugin-detector.js';
 import { HerokuSDK } from '@heroku/sdk';
-import { appExtensions } from '@heroku/sdk/extensions/platform';
+import { addOnExtensions, appExtensions } from '@heroku/sdk/extensions/platform';
 
 const VERSION = pjson.default.version;
 
@@ -38,7 +38,7 @@ const requestTimeout = isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT))
   : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT);
 const herokuRepl = new HerokuREPL(requestTimeout);
 
-const herokuSdk = new HerokuSDK({ extensions: [appExtensions] });
+const herokuSdk = new HerokuSDK({ extensions: [addOnExtensions, appExtensions] });
 
 const appSdk: apps.AppSdk = {
   list: () => herokuSdk.platform.app.list(),
@@ -53,6 +53,15 @@ const appSdk: apps.AppSdk = {
 const maintenanceSdk: maintenance.MaintenanceSdk = {
   enableMaintenance: (appIdentity) => herokuSdk.platform.app.enableMaintenance(appIdentity),
   disableMaintenance: (appIdentity) => herokuSdk.platform.app.disableMaintenance(appIdentity)
+};
+
+const addonSdk: addons.AddonSdk = {
+  list: () => herokuSdk.platform.addOn.list(),
+  listByApp: (appIdentity) => herokuSdk.platform.addOn.listByApp(appIdentity),
+  describe: (addonIdentity, options) => herokuSdk.platform.addOn.describe(addonIdentity, options),
+  create: (appIdentity, body) => herokuSdk.platform.addOn.create(appIdentity, body),
+  listServices: () => herokuSdk.platform.addOnService.list(),
+  listPlans: (serviceIdentity) => herokuSdk.platform.addOn.listPlans(serviceIdentity)
 };
 
 // Listen for MCP-formatted fatal startup errors
@@ -81,11 +90,11 @@ spaces.registerListPrivateSpacesTool(server, herokuRepl);
 teams.registerListTeamsTool(server, herokuRepl);
 
 // Add-on related tools
-addons.registerListAddonsTool(server, herokuRepl);
-addons.registerGetAddonInfoTool(server, herokuRepl);
-addons.registerCreateAddonTool(server, herokuRepl);
-addons.registerListAddonServicesTool(server, herokuRepl);
-addons.registerListAddonPlansTool(server, herokuRepl);
+addons.registerListAddonsTool(server, addonSdk);
+addons.registerGetAddonInfoTool(server, addonSdk);
+addons.registerCreateAddonTool(server, addonSdk);
+addons.registerListAddonServicesTool(server, addonSdk);
+addons.registerListAddonPlansTool(server, addonSdk);
 
 // PostgreSQL-related tools
 data.registerPgPsqlTool(server, herokuRepl);
