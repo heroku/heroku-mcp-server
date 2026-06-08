@@ -32,8 +32,8 @@
     "eslint-config-oclif": "^6.0.144",
     "eslint-plugin-mocha": "^11.2.0",
     "husky": "^9.1.7",
-    "mocha": "^11.7.5",
-    "nyc": "^17.1.0",
+    "mocha": "^11.3.0",
+    "nyc": "^18.0.0",
     "prettier": "^3.8.1",
     "shx": "^0.4.0",
     "sinon": "^21.0.1",
@@ -88,6 +88,7 @@
     "prepublishOnly": "npm run build && npm run build:mcpb"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.3"
+    "serialize-javascript": "^7.0.5",
+    "tmp": "^0.2.7"
   }
 }
