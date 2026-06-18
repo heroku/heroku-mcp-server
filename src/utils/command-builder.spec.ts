@@ -51,6 +51,19 @@ describe('CommandBuilder', () => {
       const result = builder.addFlags({ all: true });
       expect(result).to.equal(builder);
     });
+
+    it('rejects flag values containing line breaks to prevent REPL command injection', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
+      expect(() => builder.addFlags({ team: 'my-team\napps:destroy --confirm victim' })).to.throw(
+        /line breaks \(CR\/LF\) are not allowed/
+      );
+      expect(() => builder.addFlags({ team: 'my-team\rother' })).to.throw(/line breaks/);
+    });
+
+    it('still allows flag values that contain spaces (only line breaks are rejected)', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
+      expect(() => builder.addFlags({ team: 'my team' })).to.not.throw();
+    });
   });
 
   describe('addPositionalArguments', () => {
@@ -76,6 +89,13 @@ describe('CommandBuilder', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
       const result = builder.addPositionalArguments({ new_name: 'new-app-name' });
       expect(result).to.equal(builder);
+    });
+
+    it('rejects positional argument values containing line breaks', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
+      expect(() => builder.addPositionalArguments({ new_name: 'ok\napps:destroy --confirm victim' })).to.throw(
+        /line breaks \(CR\/LF\) are not allowed/
+      );
     });
   });
 
