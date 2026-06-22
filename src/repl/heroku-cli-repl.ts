@@ -123,7 +123,7 @@ export class HerokuREPL extends EventEmitter {
       shell: process.platform === 'win32'
     });
     if (!npxCheck.error && npxCheck.status === 0) {
-      return { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', '--repl'] };
+      return { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', 'repl'] };
     } else {
       // Fallback: check for heroku CLI and version
       const herokuCheck = HerokuREPL.spawnSync('heroku', ['version'], {
@@ -140,7 +140,7 @@ export class HerokuREPL extends EventEmitter {
         if (versionMatch) {
           const [major, minor] = versionMatch[1].split('.').map(Number);
           if (major > 10 || (major === 10 && minor >= 10)) {
-            return { cliCommand: 'heroku', cliArgs: ['--repl'] };
+            return { cliCommand: 'heroku', cliArgs: ['repl'] };
           } else {
             this.emit(
               'fatalError',
