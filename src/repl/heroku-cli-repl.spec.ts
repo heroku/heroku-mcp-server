@@ -204,7 +204,7 @@ describe('HerokuREPL', () => {
 
       expect(result).to.deep.equal({
         cliCommand: 'npx',
-        cliArgs: ['-y', 'heroku@latest', '--repl']
+        cliArgs: ['-y', 'heroku@latest', 'repl']
       });
       expect(fatalSpy.called).to.be.false;
     });
@@ -228,7 +228,7 @@ describe('HerokuREPL', () => {
 
       expect(result).to.deep.equal({
         cliCommand: 'heroku',
-        cliArgs: ['--repl']
+        cliArgs: ['repl']
       });
       expect(fatalSpy.called).to.be.false;
     });
@@ -252,7 +252,7 @@ describe('HerokuREPL', () => {
 
       expect(result).to.deep.equal({
         cliCommand: 'heroku',
-        cliArgs: ['--repl']
+        cliArgs: ['repl']
       });
       expect(fatalSpy.called).to.be.false;
     });
