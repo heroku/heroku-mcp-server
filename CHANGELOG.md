@@ -5,6 +5,13 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.4](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.3...mcp-server-v1.2.4) (2026-06-22)
+
+
+### Bug Fixes
+
+* invoke heroku CLI repl as subcommand instead of --repl flag ([#220](https://github.com/heroku/heroku-mcp-server/issues/220)) ([6f3f4e2](https://github.com/heroku/heroku-mcp-server/commit/6f3f4e21914118bb2227ab5f1484fc3e756b58a6))
+
 ## [1.2.3](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.2...mcp-server-v1.2.3) (2026-06-08)
 
 
