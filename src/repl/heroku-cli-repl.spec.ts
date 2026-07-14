@@ -104,14 +104,14 @@ describe('HerokuREPL', () => {
     });
   });
 
-  describe('stdin command injection (threat model)', () => {
+  describe('stdin protocol', () => {
     // This test locks in the exact bytes written to the CLI process stdin.
     // Commands are newline-delimited on stdin, so the REPL appends a single
-    // trailing '\n' to signal "end of command". This is precisely why an
-    // embedded '\n' inside a command string is dangerous: the CLI would treat
-    // everything after the embedded newline as a SECOND command. The
-    // CommandBuilder CR/LF guard upstream is what defends against that; this
-    // test documents the exact-bytes behavior it relies on.
+    // trailing '\n' to signal "end of command". This is why a command string
+    // must itself be a single line: the CLI treats everything after an embedded
+    // newline as a separate command. The CommandBuilder CR/LF validation
+    // upstream enforces that; this test documents the exact-bytes behavior it
+    // relies on.
 
     it('should write exactly command + a single trailing newline to stdin', async () => {
       const command = 'apps';

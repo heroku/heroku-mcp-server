@@ -332,9 +332,9 @@ describe('apps topic tools', () => {
     });
   });
 
-  // Command injection prevention: malicious input routed through a real tool handler
-  // must be rejected by CommandBuilder before it can reach the Heroku REPL.
-  describe('command injection prevention', () => {
+  // Input validation: a multi-line value routed through a real tool handler must be
+  // rejected by CommandBuilder before it can reach the Heroku REPL.
+  describe('input validation', () => {
     let mocks: ReturnType<typeof setupMcpToolMocks>;
 
     beforeEach(() => {
@@ -345,50 +345,50 @@ describe('apps topic tools', () => {
       sinon.restore();
     });
 
-    it('rejects a newline-injected team flag on list_apps without executing the payload', async () => {
-      const maliciousTeam = 'my-team\napps:destroy --confirm victim';
+    it('rejects a multi-line team flag on list_apps without executing it', async () => {
+      const multiLineTeam = 'my-team\nsecond-line';
       registerListAppsTool(mocks.server, mocks.herokuRepl);
       const toolCallback = mocks.getToolCallback();
 
       let error: Error | undefined;
       try {
-        await toolCallback({ team: maliciousTeam }, {});
+        await toolCallback({ team: multiLineTeam }, {});
       } catch (caught) {
         error = caught as Error;
       }
 
-      // The injection must be surfaced as an error...
+      // The invalid value must be surfaced as an error...
       expect(error).to.be.an('Error');
 
-      // ...and the malicious payload must never reach the REPL.
+      // ...and must never reach the REPL.
       expect(mocks.herokuRepl.executeCommand.called).to.be.false;
-      const executedWithInjection = mocks.herokuRepl.executeCommand
+      const executedWithLineBreak = mocks.herokuRepl.executeCommand
         .getCalls()
         .some((call) => typeof call.args[0] === 'string' && call.args[0].includes('\n'));
-      expect(executedWithInjection).to.be.false;
+      expect(executedWithLineBreak).to.be.false;
     });
 
-    it('rejects a newline-injected newName argument on rename_app without executing the payload', async () => {
-      const maliciousNewName = 'renamed-app\napps:destroy --confirm victim';
+    it('rejects a multi-line newName argument on rename_app without executing it', async () => {
+      const multiLineNewName = 'renamed-app\nsecond-line';
       registerRenameAppTool(mocks.server, mocks.herokuRepl);
       const toolCallback = mocks.getToolCallback();
 
       let error: Error | undefined;
       try {
-        await toolCallback({ app: 'test-app', newName: maliciousNewName }, {});
+        await toolCallback({ app: 'test-app', newName: multiLineNewName }, {});
       } catch (caught) {
         error = caught as Error;
       }
 
-      // The injection must be surfaced as an error...
+      // The invalid value must be surfaced as an error...
       expect(error).to.be.an('Error');
 
-      // ...and the malicious payload must never reach the REPL.
+      // ...and must never reach the REPL.
       expect(mocks.herokuRepl.executeCommand.called).to.be.false;
-      const executedWithInjection = mocks.herokuRepl.executeCommand
+      const executedWithLineBreak = mocks.herokuRepl.executeCommand
         .getCalls()
         .some((call) => typeof call.args[0] === 'string' && call.args[0].includes('\n'));
-      expect(executedWithInjection).to.be.false;
+      expect(executedWithLineBreak).to.be.false;
     });
   });
 });

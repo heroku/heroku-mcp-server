@@ -1,12 +1,12 @@
 /**
- * Characters that must never appear in a flag value or positional argument.
+ * Characters that are not permitted in a flag value or positional argument.
  *
  * Each built command is delivered to the Heroku CLI as a single line — the REPL
- * writes `command + '\n'` to the CLI process's stdin (see `HerokuREPL`). A carriage
- * return or line feed embedded in a value would therefore terminate the current
- * command and begin another, allowing an untrusted value to inject an additional,
- * unintended CLI command into the stream. There is no legitimate reason for a flag
- * value or positional argument to contain a line break, so they are rejected.
+ * writes `command + '\n'` to the CLI process's stdin (see `HerokuREPL`). Because
+ * commands are line-delimited, a value that spans multiple lines would not be
+ * handled as a single, self-contained value. There is no legitimate reason for a
+ * flag value or positional argument to contain a line break, so we apply strict
+ * input validation and reject them.
  */
 const LINE_BREAK_PATTERN = /[\r\n]/;
 
@@ -29,7 +29,7 @@ export class CommandBuilder {
   }
 
   /**
-   * Rejects values that would break out of the single command line they belong to.
+   * Validates that a value is a single line, as required for a well-formed command.
    *
    * @param kind - Whether the value is a flag value or a positional argument (for the error message).
    * @param name - The flag/argument name the value is associated with (for the error message).
@@ -39,7 +39,7 @@ export class CommandBuilder {
   private static assertNoLineBreaks(kind: 'argument' | 'flag', name: string, value: string): void {
     if (LINE_BREAK_PATTERN.test(value)) {
       throw new Error(
-        `Invalid ${kind} value for "${name}": line breaks (CR/LF) are not allowed. Commands are sent one per line to the Heroku CLI, so an embedded newline would be interpreted as the start of a separate command.`
+        `Invalid ${kind} value for "${name}": line breaks (CR/LF) are not allowed. Commands are sent one per line to the Heroku CLI, so a value must be contained on a single line.`
       );
     }
   }

@@ -83,15 +83,15 @@ describe('PostgreSQL Tools', () => {
     //
     // These tests document the CURRENT (and intentionally inconsistent) behavior
     // of pg:psql. Unlike every other tool -- which relies on CommandBuilder's
-    // CR/LF guard to REJECT any value containing a line break -- pg:psql
+    // CR/LF validation to REJECT any value containing a line break -- pg:psql
     // pre-processes its `command` value with `replaceAll('\n', ' ')` in data.ts
     // BEFORE it reaches CommandBuilder (see the `command:` flag in
     // registerPgPsqlTool). As a result:
     //   * a line feed (\n) is SILENTLY REWRITTEN to a space (strip, not reject),
     //   * but a carriage return (\r) is NOT touched by that replace and still
-    //     reaches CommandBuilder's guard.
+    //     reaches CommandBuilder's validation.
     //
-    // If pg:psql is ever unified with the reject-everywhere approach (i.e. the
+    // If pg:psql is ever unified with the reject-everywhere validation (i.e. the
     // `replaceAll('\n', ' ')` is removed so LF is rejected like everywhere else),
     // these tests will intentionally break -- signalling that the documented
     // behavior changed on purpose.
@@ -115,10 +115,10 @@ describe('PostgreSQL Tools', () => {
 
     // OBSERVED BEHAVIOR (verified by running this spec): a carriage return (\r) in
     // `command` is NOT stripped by `replaceAll('\n', ' ')`, so it reaches
-    // CommandBuilder's CR/LF guard and is REJECTED -- the tool callback REJECTS
+    // CommandBuilder's CR/LF validation and is REJECTED -- the tool callback REJECTS
     // (throws) and executeCommand is never called. This differs from the LF case
     // above, which is silently stripped.
-    it('CHARACTERIZATION: rejects a CR in command (not stripped) via the CommandBuilder guard', async () => {
+    it('CHARACTERIZATION: rejects a CR in command (not stripped) via CommandBuilder validation', async () => {
       mocks.herokuRepl.executeCommand.resolves('Query executed successfully\n');
 
       let thrownError: Error | undefined;
@@ -128,7 +128,7 @@ describe('PostgreSQL Tools', () => {
         thrownError = error as Error;
       }
 
-      // The \r is not touched by replaceAll('\n', ' '), so CommandBuilder throws.
+      // The \r is not touched by replaceAll('\n', ' '), so CommandBuilder rejects it.
       expect(thrownError, 'expected the tool callback to throw for a CR in command').to.be.an('error');
       expect(thrownError?.message).to.include('line breaks (CR/LF) are not allowed');
       // Because building the command threw, the command was never executed.
