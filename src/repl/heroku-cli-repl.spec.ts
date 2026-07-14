@@ -104,6 +104,44 @@ describe('HerokuREPL', () => {
     });
   });
 
+  describe('stdin protocol', () => {
+    // This test locks in the exact bytes written to the CLI process stdin.
+    // Commands are newline-delimited on stdin, so the REPL appends a single
+    // trailing '\n' to signal "end of command". This is why a command string
+    // must itself be a single line: the CLI treats everything after an embedded
+    // newline as a separate command. The CommandBuilder CR/LF validation
+    // upstream enforces that; this test documents the exact-bytes behavior it
+    // relies on.
+
+    it('should write exactly command + a single trailing newline to stdin', async () => {
+      const command = 'apps';
+
+      // Deterministically resolve the moment the async iterator writes to
+      // stdin, rather than waiting a fixed duration.
+      let onWrite!: () => void;
+      const written = new Promise<void>((resolve) => {
+        onWrite = resolve;
+      });
+      mockProcess.stdin.write.callsFake(() => {
+        onWrite();
+        return true;
+      });
+
+      const commandPromise = repl.executeCommand(command);
+
+      // Proceed as soon as the write actually happens.
+      await written;
+
+      expect(mockProcess.stdin.write.calledOnce).to.be.true;
+      const writtenValue = mockProcess.stdin.write.firstCall.args[0] as string;
+      expect(writtenValue).to.equal(command + '\n');
+
+      // Clean up the outstanding command promise.
+      setTimeout(() => mockProcess.stdout.emit('data', 'Command output\n<<<END RESULTS>>>'));
+      await commandPromise;
+    });
+  });
+
   describe('process management', () => {
     it('should restart process on unexpected close', () => {
       mockProcess.emit('close', 1);

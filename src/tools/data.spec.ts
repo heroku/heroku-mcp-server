@@ -77,6 +77,63 @@ describe('PostgreSQL Tools', () => {
         isError: true
       });
     });
+
+    // ---------------------------------------------------------------------------
+    // CHARACTERIZATION TESTS: newline handling in the `command` value.
+    //
+    // These tests document the CURRENT (and intentionally inconsistent) behavior
+    // of pg:psql. Unlike every other tool -- which relies on CommandBuilder's
+    // CR/LF validation to REJECT any value containing a line break -- pg:psql
+    // pre-processes its `command` value with `replaceAll('\n', ' ')` in data.ts
+    // BEFORE it reaches CommandBuilder (see the `command:` flag in
+    // registerPgPsqlTool). As a result:
+    //   * a line feed (\n) is SILENTLY REWRITTEN to a space (strip, not reject),
+    //   * but a carriage return (\r) is NOT touched by that replace and still
+    //     reaches CommandBuilder's validation.
+    //
+    // If pg:psql is ever unified with the reject-everywhere validation (i.e. the
+    // `replaceAll('\n', ' ')` is removed so LF is rejected like everywhere else),
+    // these tests will intentionally break -- signalling that the documented
+    // behavior changed on purpose.
+    // ---------------------------------------------------------------------------
+
+    it('CHARACTERIZATION: strips (does not reject) a LF in command, replacing it with a space', async () => {
+      mocks.herokuRepl.executeCommand.resolves('Query executed successfully\n');
+
+      // Multi-line SQL: the LF between the two statements should be converted to a space.
+      await toolCallback({ app: 'myapp', command: 'SELECT 1;\nSELECT 2;' });
+
+      expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
+      const builtCommand = mocks.herokuRepl.executeCommand.firstCall.args[0] as string;
+
+      // The newline was replaced by a space BEFORE reaching CommandBuilder, so the
+      // command is NOT rejected and the built command contains the space-joined SQL.
+      expect(builtCommand).to.equal(`${TOOL_COMMAND_MAP.PG_PSQL} --app=myapp --command="SELECT 1; SELECT 2;"`);
+      // Confirm no raw LF survived in the command sent to the CLI.
+      expect(builtCommand).to.not.include('\n');
+    });
+
+    // OBSERVED BEHAVIOR (verified by running this spec): a carriage return (\r) in
+    // `command` is NOT stripped by `replaceAll('\n', ' ')`, so it reaches
+    // CommandBuilder's CR/LF validation and is REJECTED -- the tool callback REJECTS
+    // (throws) and executeCommand is never called. This differs from the LF case
+    // above, which is silently stripped.
+    it('CHARACTERIZATION: rejects a CR in command (not stripped) via CommandBuilder validation', async () => {
+      mocks.herokuRepl.executeCommand.resolves('Query executed successfully\n');
+
+      let thrownError: Error | undefined;
+      try {
+        await toolCallback({ app: 'myapp', command: 'SELECT 1;\rSELECT 2;' });
+      } catch (error) {
+        thrownError = error as Error;
+      }
+
+      // The \r is not touched by replaceAll('\n', ' '), so CommandBuilder rejects it.
+      expect(thrownError, 'expected the tool callback to throw for a CR in command').to.be.an('error');
+      expect(thrownError?.message).to.include('line breaks (CR/LF) are not allowed');
+      // Because building the command threw, the command was never executed.
+      expect(mocks.herokuRepl.executeCommand.called).to.be.false;
+    });
   });
 
   describe('pg:info', () => {
