@@ -64,6 +64,11 @@ describe('CommandBuilder', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
       expect(() => builder.addFlags({ team: 'my team' })).to.not.throw();
     });
+
+    it('names the offending flag and the "flag" kind in the error message', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
+      expect(() => builder.addFlags({ team: 'my-team\napps:destroy' })).to.throw(/Invalid flag value for "team"/);
+    });
   });
 
   describe('addPositionalArguments', () => {
@@ -97,6 +102,13 @@ describe('CommandBuilder', () => {
         /line breaks \(CR\/LF\) are not allowed/
       );
     });
+
+    it('names the offending argument and the "argument" kind in the error message', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
+      expect(() => builder.addPositionalArguments({ new_name: 'ok\napps:destroy' })).to.throw(
+        /Invalid argument value for "new_name"/
+      );
+    });
   });
 
   describe('build', () => {
@@ -127,6 +139,24 @@ describe('CommandBuilder', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP);
       builder.addFlags({ region: 'eu' }).addPositionalArguments({ app: 'my-app' }).addFlags({ team: 'my-team' });
       expect(builder.build()).to.equal('apps:create --region=eu --team=my-team -- my-app');
+    });
+
+    it('can never emit a command containing carriage returns or line feeds', () => {
+      // The guard rejects CR/LF at add-time, so a value with a line break is never
+      // stored and the build output is always free of them. This test depends on the
+      // guard: it asserts the malicious add throws AND that the command built from the
+      // remaining clean values contains no CR/LF (i.e. the injection left no trace).
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP);
+      builder.addFlags({ region: 'eu' });
+      expect(() => builder.addFlags({ team: 'my-team\napps:destroy --confirm victim' })).to.throw(
+        /line breaks \(CR\/LF\) are not allowed/
+      );
+      expect(() => builder.addPositionalArguments({ app: 'my-app\rmalicious' })).to.throw(
+        /line breaks \(CR\/LF\) are not allowed/
+      );
+      const command = builder.build();
+      expect(command).to.not.match(/[\r\n]/);
+      expect(command).to.equal('apps:create --region=eu');
     });
   });
 });
