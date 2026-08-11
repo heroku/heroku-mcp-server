@@ -5,6 +5,18 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.6](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.5...mcp-server-v1.2.6) (2026-08-11)
+
+
+### Dependencies
+
+* bump body-parser from 2.2.2 to 2.3.0 ([#235](https://github.com/heroku/heroku-mcp-server/issues/235)) ([7b0abaf](https://github.com/heroku/heroku-mcp-server/commit/7b0abafdd5256b259a666efeb409e7dafe76b9db))
+* bump brace-expansion ([#246](https://github.com/heroku/heroku-mcp-server/issues/246)) ([cb5c07c](https://github.com/heroku/heroku-mcp-server/commit/cb5c07c813187b3e14c042c64437672186bed37d))
+* bump fast-uri from 3.1.2 to 3.1.5 ([#242](https://github.com/heroku/heroku-mcp-server/issues/242)) ([ce30e75](https://github.com/heroku/heroku-mcp-server/commit/ce30e7526017d4c4ce1c39760bb6ff4b0f41f778))
+* bump ip-address from 10.2.0 to 10.5.0 ([#247](https://github.com/heroku/heroku-mcp-server/issues/247)) ([effd956](https://github.com/heroku/heroku-mcp-server/commit/effd956d26a17eaa991597ca22bf18c26ee3eef0))
+* bump undici from 7.28.0 to 7.29.0 ([#240](https://github.com/heroku/heroku-mcp-server/issues/240)) ([f248a4b](https://github.com/heroku/heroku-mcp-server/commit/f248a4b16f54392d0af5b419426f6b08f2a9ec31))
+* fixes multiple Dependabot security advisories ([#248](https://github.com/heroku/heroku-mcp-server/issues/248)) ([edd1312](https://github.com/heroku/heroku-mcp-server/commit/edd13122768cc1f31a6263f98500ffa0521f4d7f))
+
 ## [1.2.5](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.4...mcp-server-v1.2.5) (2026-06-29)
 
 
