@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import { ValidatorResult } from 'jsonschema';
 import { AppSetup, Build, Dyno } from '@heroku-cli/schema';
 import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
 import { AppJson, type EnvironmentVariables, readAppJson } from '../utils/read-app-json.js';
 import AppService from '../services/app-service.js';
