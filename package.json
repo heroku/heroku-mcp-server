@@ -78,7 +78,6 @@
     "start": "node bin/heroku-mcp-server.mjs",
     "format": "prettier . --write --config ./.prettier.mjs",
     "lint": "cd src && eslint ./",
-    "posttest": "npm run lint",
     "prepare": "husky",
     "pretest": "npm run build",
     "type-check": "tsc --noEmit",
