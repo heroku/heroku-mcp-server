@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import zlib from 'node:zlib';
 import { execSync } from 'node:child_process';
 import { expect } from 'chai';
 import { packSources, getSourceFilePaths, GeneratedContent } from './tarball.js';
@@ -113,6 +114,72 @@ describe('tarball utils', () => {
       expect(result).to.include(path.join(tempDir, 'dir1/file1.txt'));
       expect(result).to.include(path.join(tempDir, 'dir1/subdir/file2.txt'));
       expect(result).to.include(path.join(tempDir, 'file3.txt'));
+    });
+  });
+
+  // Regression tests for W-23510157 (CWE-59): a tracked/untracked symlink whose
+  // target lives outside the workspace root must never have its target bytes
+  // read into the uploaded source archive.
+  describe('symlink handling (W-23510157)', () => {
+    const SECRET = 'SUPER-SECRET-EXTERNAL-CANARY';
+    let outsideDir: string;
+    let secretPath: string;
+
+    beforeEach(async () => {
+      // A file that lives entirely outside the workspace root.
+      outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'outside-workspace-'));
+      secretPath = path.join(outsideDir, 'secret.txt');
+      await fs.writeFile(secretPath, SECRET);
+    });
+
+    afterEach(async () => {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    });
+
+    it('excludes symlinks whose target is outside the workspace root (walk path)', async () => {
+      await createTempFile('legit.txt', 'legit content');
+      await fs.symlink(secretPath, path.join(tempDir, 'evil-link.txt'));
+
+      const result = await getSourceFilePaths(tempDir);
+
+      expect(result).to.include(path.join(tempDir, 'legit.txt'));
+      expect(result).to.not.include(path.join(tempDir, 'evil-link.txt'));
+    });
+
+    it('does not pack the contents of an out-of-root symlink target', async () => {
+      await createTempFile('legit.txt', 'legit content');
+      await fs.symlink(secretPath, path.join(tempDir, 'evil-link.txt'));
+
+      const tarball = await packSources(tempDir);
+      const unzipped = zlib.gunzipSync(tarball).toString('binary');
+
+      expect(unzipped).to.include('legit content');
+      expect(unzipped).to.not.include(SECRET);
+    });
+
+    it('excludes tracked symlinks that escape root via the git ls-files path', async () => {
+      execSync('git init -q', { cwd: tempDir });
+      await createTempFile('legit.txt', 'legit content');
+      // `git ls-files -o` lists untracked, non-ignored files, so no commit is required
+      // for the symlink path to reach getSourceFilePaths().
+      await fs.symlink(secretPath, path.join(tempDir, 'evil-link.txt'));
+
+      const result = await getSourceFilePaths(tempDir);
+      const tarball = await packSources(tempDir);
+      const unzipped = zlib.gunzipSync(tarball).toString('binary');
+
+      expect(result).to.not.include(path.join(tempDir, 'evil-link.txt'));
+      expect(unzipped).to.include('legit content');
+      expect(unzipped).to.not.include(SECRET);
+    });
+
+    it('still includes symlinks that resolve within the workspace root', async () => {
+      await createTempFile('real/target.txt', 'in-tree content');
+      await fs.symlink(path.join(tempDir, 'real/target.txt'), path.join(tempDir, 'inside-link.txt'));
+
+      const result = await getSourceFilePaths(tempDir);
+
+      expect(result).to.include(path.join(tempDir, 'inside-link.txt'));
     });
   });
 });
