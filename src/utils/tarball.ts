@@ -1,5 +1,5 @@
 import zlib from 'node:zlib';
-import { readFile, stat, readdir } from 'node:fs/promises';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import * as tar from 'tar-stream';
@@ -42,7 +42,7 @@ export async function packSources(
 
   for (const file of files) {
     try {
-      const content = await readFile(file);
+      const content = await fs.readFile(file);
       const relativePath = path.relative(root!, file);
       pack.entry({ name: relativePath }, Buffer.from(content));
     } catch {
@@ -78,15 +78,24 @@ export async function getSourceFilePaths(root: string): Promise<string[]> {
 
   const paths = result.split('\n').filter((file) => Boolean(file));
 
+  const realRoot = await fs.realpath(root);
   const allFiles: string[] = [];
 
   for (const p of paths) {
     const fullPath = path.join(root, p);
     try {
-      const stats = await stat(fullPath);
-      if (stats.isDirectory()) {
+      const stats = await fs.lstat(fullPath);
+      // Never follow a symlink whose target escapes the workspace root: doing so
+      // would read files outside the deploy source and place them in the uploaded
+      // tarball (W-23510157, CWE-59).
+      if (stats.isSymbolicLink() && (await escapesRoot(realRoot, fullPath))) {
+        continue;
+      }
+      // Resolve the (possibly in-root symlinked) entry to decide file vs. directory.
+      const resolved = await fs.stat(fullPath);
+      if (resolved.isDirectory()) {
         // Recursively get all files in directory
-        const files = await walkDirectory(fullPath);
+        const files = await walkDirectory(fullPath, realRoot);
         allFiles.push(...files);
       } else {
         allFiles.push(fullPath);
@@ -100,22 +109,50 @@ export async function getSourceFilePaths(root: string): Promise<string[]> {
 }
 
 /**
+ * Determines whether a path's real (symlink-resolved) location escapes the
+ * workspace root. Following a repository symlink whose target lives outside the
+ * selected root would let a malicious repository smuggle unrelated files from the
+ * developer's machine into the uploaded source archive (W-23510157, CWE-59).
+ *
+ * @param realRoot The canonical (realpath-resolved) workspace root
+ * @param candidate The path whose resolved target should be checked
+ * @returns true when the resolved target is outside realRoot or cannot be resolved
+ */
+async function escapesRoot(realRoot: string, candidate: string): Promise<boolean> {
+  try {
+    const realCandidate = await fs.realpath(candidate);
+    const relative = path.relative(realRoot, realCandidate);
+    return relative.startsWith('..') || path.isAbsolute(relative);
+  } catch {
+    // A dangling or otherwise unresolvable link is excluded rather than read.
+    return true;
+  }
+}
+
+/**
  * Walks a directory and returns all file paths
  *
  * @param dir The directory to walk
+ * @param realRoot The canonical (realpath-resolved) workspace root used to reject
+ *   symlinks that resolve outside of it (W-23510157, CWE-59)
  * @returns A promise that resolves to an array of file paths
  */
-async function walkDirectory(dir: string): Promise<string[]> {
+async function walkDirectory(dir: string, realRoot: string): Promise<string[]> {
   const files: string[] = [];
 
   try {
-    const entries = await readdir(dir, { withFileTypes: true });
+    const entries = await fs.readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
 
+      // Never follow a symlink whose target escapes the workspace root.
+      if (entry.isSymbolicLink() && (await escapesRoot(realRoot, fullPath))) {
+        continue;
+      }
+
       if (entry.isDirectory()) {
-        const subFiles = await walkDirectory(fullPath);
+        const subFiles = await walkDirectory(fullPath, realRoot);
         files.push(...subFiles);
       } else {
         files.push(fullPath);
