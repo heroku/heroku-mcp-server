@@ -5,6 +5,13 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.7](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.6...mcp-server-v1.2.7) (2026-09-03)
+
+
+### Bug Fixes
+
+* stop deploy packer from following out-of-root symlinks ([#257](https://github.com/heroku/heroku-mcp-server/issues/257)) ([75ec26a](https://github.com/heroku/heroku-mcp-server/commit/75ec26a9d96d37c757f7c6c69044897875f2553a))
+
 ## [1.2.6](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.5...mcp-server-v1.2.6) (2026-08-11)
 
 
