@@ -5,6 +5,15 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.8](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.7...mcp-server-v1.2.8) (2026-09-04)
+
+
+### Dependencies
+
+* bump fast-uri from 3.1.5 to 3.1.7 ([#258](https://github.com/heroku/heroku-mcp-server/issues/258)) ([a4c51a3](https://github.com/heroku/heroku-mcp-server/commit/a4c51a3a2a74a4596240a45bf6a9a1740cd9151c))
+* bump qs from 6.15.2 to 6.16.0 ([#259](https://github.com/heroku/heroku-mcp-server/issues/259)) ([e4ab1a6](https://github.com/heroku/heroku-mcp-server/commit/e4ab1a65ae09fcba9867e9d1354fce323cbc236d))
+* bump tar-stream from 3.1.7 to 3.2.0 ([#252](https://github.com/heroku/heroku-mcp-server/issues/252)) ([e1a20d2](https://github.com/heroku/heroku-mcp-server/commit/e1a20d2c0d5b73b43ed2cca2feeaf2c66a9c9257))
+
 ## [1.2.7](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.6...mcp-server-v1.2.7) (2026-09-03)
 
 
