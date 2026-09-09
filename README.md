@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/heroku-heroku-mcp-server-badge.png)](https://mseep.ai/app/heroku-heroku-mcp-server)
+
 # heroku-mcp-server
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=heroku&config=eyJjb21tYW5kIjoibnB4IC15IEBoZXJva3UvbWNwLXNlcnZlciIsImVudiI6eyJIRVJPS1VfQVBJX0tFWSI6IjxZT1VSX0hFUk9LVV9BVVRIX1RPS0VOPiJ9fQ%3D%3D)
