@@ -30,7 +30,7 @@
     "chai": "^6.2.2",
     "eslint": "^9",
     "eslint-config-oclif": "^6.0.144",
-    "eslint-plugin-mocha": "^11.2.0",
+    "eslint-plugin-mocha": "^12.0.2",
     "husky": "^9.1.7",
     "mocha": "^11.3.0",
     "nyc": "^18.0.0",
