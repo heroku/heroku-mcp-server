@@ -33,7 +33,7 @@ describe('Process Management Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PS} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PS} --app='myapp'`);
     });
 
     it('should build correct command with all parameters', async () => {
@@ -44,7 +44,7 @@ describe('Process Management Tools', () => {
         json: true
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PS} --app=myapp --json`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PS} --app='myapp' --json`);
     });
 
     it('should handle error response', async () => {
@@ -90,7 +90,7 @@ describe('Process Management Tools', () => {
       await toolCallback({ app: 'myapp', dyno: 'web=2' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PS_SCALE} --app=myapp -- web=2`
+        `${TOOL_COMMAND_MAP.PS_SCALE} --app='myapp' -- 'web=2'`
       );
     });
 
@@ -103,7 +103,7 @@ describe('Process Management Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PS_SCALE} --app=myapp -- web=2`
+        `${TOOL_COMMAND_MAP.PS_SCALE} --app='myapp' -- 'web=2'`
       );
     });
   });
@@ -133,7 +133,9 @@ describe('Process Management Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PS_RESTART} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.PS_RESTART} --app='myapp'`
+      );
     });
 
     it('should build correct command with specific dyno', async () => {
@@ -145,7 +147,7 @@ describe('Process Management Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PS_RESTART} --app=myapp --dyno-name=web.1`
+        `${TOOL_COMMAND_MAP.PS_RESTART} --app='myapp' --dyno-name='web.1'`
       );
     });
 
@@ -159,7 +161,7 @@ describe('Process Management Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PS_RESTART} --app=myapp --dyno-name=web.1 --process-type=web`
+        `${TOOL_COMMAND_MAP.PS_RESTART} --app='myapp' --dyno-name='web.1' --process-type='web'`
       );
     });
   });

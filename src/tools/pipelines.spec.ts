@@ -41,7 +41,7 @@ describe('Pipeline Tools', () => {
       await toolCallback({ name: 'myapp-pipeline' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_CREATE} -- myapp-pipeline`
+        `${TOOL_COMMAND_MAP.PIPELINES_CREATE} -- 'myapp-pipeline'`
       );
     });
 
@@ -56,7 +56,7 @@ describe('Pipeline Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_CREATE} --stage=production --app=myapp --team=myteam -- myapp-pipeline`
+        `${TOOL_COMMAND_MAP.PIPELINES_CREATE} --stage='production' --app='myapp' --team='myteam' -- 'myapp-pipeline'`
       );
     });
 
@@ -103,7 +103,7 @@ describe('Pipeline Tools', () => {
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_PROMOTE} --app=myapp`
+        `${TOOL_COMMAND_MAP.PIPELINES_PROMOTE} --app='myapp'`
       );
     });
 
@@ -116,7 +116,7 @@ describe('Pipeline Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_PROMOTE} --app=myapp --to=production`
+        `${TOOL_COMMAND_MAP.PIPELINES_PROMOTE} --app='myapp' --to='production'`
       );
     });
   });
@@ -187,7 +187,7 @@ describe('Pipeline Tools', () => {
       await toolCallback({ pipeline: 'myapp-pipeline' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_INFO} -- myapp-pipeline`
+        `${TOOL_COMMAND_MAP.PIPELINES_INFO} -- 'myapp-pipeline'`
       );
     });
 
@@ -200,7 +200,7 @@ describe('Pipeline Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PIPELINES_INFO} --json -- myapp-pipeline`
+        `${TOOL_COMMAND_MAP.PIPELINES_INFO} --json -- 'myapp-pipeline'`
       );
     });
   });

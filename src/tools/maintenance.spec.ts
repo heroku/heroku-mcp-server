@@ -35,7 +35,7 @@ describe('Maintenance Tools', () => {
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.MAINTENANCE_ON} --app=myapp`
+        `${TOOL_COMMAND_MAP.MAINTENANCE_ON} --app='myapp'`
       );
     });
 
@@ -92,7 +92,7 @@ describe('Maintenance Tools', () => {
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.MAINTENANCE_OFF} --app=myapp`
+        `${TOOL_COMMAND_MAP.MAINTENANCE_OFF} --app='myapp'`
       );
     });
 

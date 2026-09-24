@@ -162,7 +162,7 @@ export const registerPgPsqlTool = (server: McpServer, herokuRepl: HerokuREPL): v
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_PSQL)
         .addFlags({
           app: options.app,
-          command: `"${options.command?.replaceAll('\n', ' ') ?? ''}"`,
+          command: options.command?.replaceAll('\n', ' ') ?? '',
           file: options.file,
           credential: options.credential
         })

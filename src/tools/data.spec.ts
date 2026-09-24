@@ -41,9 +41,7 @@ describe('PostgreSQL Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_PSQL} --app=myapp --command=""`
-      );
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_PSQL} --app='myapp'`);
     });
 
     it('should build correct command with all parameters', async () => {
@@ -58,7 +56,7 @@ describe('PostgreSQL Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_PSQL} --app=myapp --command="SELECT * FROM users" --file=query.sql --credential=mycred -- HEROKU_POSTGRESQL_RED`
+        `${TOOL_COMMAND_MAP.PG_PSQL} --app='myapp' --command='SELECT * FROM users' --file='query.sql' --credential='mycred' -- 'HEROKU_POSTGRESQL_RED'`
       );
     });
 
@@ -108,7 +106,7 @@ describe('PostgreSQL Tools', () => {
 
       // The newline was replaced by a space BEFORE reaching CommandBuilder, so the
       // command is NOT rejected and the built command contains the space-joined SQL.
-      expect(builtCommand).to.equal(`${TOOL_COMMAND_MAP.PG_PSQL} --app=myapp --command="SELECT 1; SELECT 2;"`);
+      expect(builtCommand).to.equal(`${TOOL_COMMAND_MAP.PG_PSQL} --app='myapp' --command='SELECT 1; SELECT 2;'`);
       // Confirm no raw LF survived in the command sent to the CLI.
       expect(builtCommand).to.not.include('\n');
     });
@@ -163,7 +161,7 @@ describe('PostgreSQL Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_INFO} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_INFO} --app='myapp'`);
     });
 
     it('should build correct command with database parameter', async () => {
@@ -174,7 +172,7 @@ describe('PostgreSQL Tools', () => {
       await toolCallback({ app: 'myapp', database: 'HEROKU_POSTGRESQL_RED' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_INFO} --app=myapp -- HEROKU_POSTGRESQL_RED`
+        `${TOOL_COMMAND_MAP.PG_INFO} --app='myapp' -- 'HEROKU_POSTGRESQL_RED'`
       );
     });
 
@@ -222,7 +220,7 @@ describe('PostgreSQL Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_PS} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_PS} --app='myapp'`);
     });
 
     it('should build correct command with all parameters', async () => {
@@ -237,7 +235,7 @@ describe('PostgreSQL Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_PS} --app=myapp --verbose -- HEROKU_POSTGRESQL_RED`
+        `${TOOL_COMMAND_MAP.PG_PS} --app='myapp' --verbose -- 'HEROKU_POSTGRESQL_RED'`
       );
     });
 
@@ -285,7 +283,7 @@ describe('PostgreSQL Tools', () => {
       await toolCallback({ app: 'myapp', pid: 12345 });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_KILL} --app=myapp -- 12345`
+        `${TOOL_COMMAND_MAP.PG_KILL} --app='myapp' -- '12345'`
       );
     });
 
@@ -301,7 +299,7 @@ describe('PostgreSQL Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_KILL} --app=myapp --force -- 12345 HEROKU_POSTGRESQL_RED`
+        `${TOOL_COMMAND_MAP.PG_KILL} --app='myapp' --force -- '12345' 'HEROKU_POSTGRESQL_RED'`
       );
     });
 
@@ -349,7 +347,9 @@ describe('PostgreSQL Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_BACKUPS} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.PG_BACKUPS} --app='myapp'`
+      );
     });
 
     it('should build correct command with all parameters', async () => {
@@ -365,7 +365,9 @@ describe('PostgreSQL Tools', () => {
         quiet: true
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_BACKUPS} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.PG_BACKUPS} --app='myapp'`
+      );
     });
 
     it('should handle error response', async () => {
@@ -411,7 +413,9 @@ describe('PostgreSQL Tools', () => {
 
       await toolCallback({ app: 'myapp' });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
-      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(`${TOOL_COMMAND_MAP.PG_UPGRADE} --app=myapp`);
+      expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
+        `${TOOL_COMMAND_MAP.PG_UPGRADE} --app='myapp'`
+      );
     });
 
     it('should build correct command with all parameters', async () => {
@@ -426,7 +430,7 @@ describe('PostgreSQL Tools', () => {
       });
       expect(mocks.herokuRepl.executeCommand.calledOnce).to.be.true;
       expect(mocks.herokuRepl.executeCommand.firstCall.args[0]).to.equal(
-        `${TOOL_COMMAND_MAP.PG_UPGRADE} --app=myapp --version=14 --confirm=myapp -- HEROKU_POSTGRESQL_RED`
+        `${TOOL_COMMAND_MAP.PG_UPGRADE} --app='myapp' --version='14' --confirm='myapp' -- 'HEROKU_POSTGRESQL_RED'`
       );
     });
 
