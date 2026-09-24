@@ -1,3 +1,5 @@
 {
-  "cSpell.words": ["modelcontextprotocol", "optfile"]
+  "cSpell.words": ["modelcontextprotocol", "optfile"],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }

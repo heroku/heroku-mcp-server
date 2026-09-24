@@ -33,10 +33,10 @@ export async function packSources(
   const files = root ? await getSourceFilePaths(root) : [];
 
   const pack = tar.pack();
-  const gzip = zlib.createGzip();
+  const gzip = zlib.createGzip() as any;
   const chunks: Buffer[] = [];
 
-  gzip.on('data', (chunk) => chunks.push(chunk as Buffer));
+  gzip.on('data', (chunk: Buffer) => chunks.push(chunk));
 
   pack.pipe(gzip);
 
