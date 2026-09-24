@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { parse } from 'shell-quote';
 import { CommandBuilder } from './command-builder.js';
 import { TOOL_COMMAND_MAP } from './tool-commands.js';
 
@@ -25,13 +26,13 @@ describe('CommandBuilder', () => {
     it('adds string flags with values correctly', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
       builder.addFlags({ team: 'my-team', space: 'my-space' });
-      expect(builder.build()).to.equal('apps --team=my-team --space=my-space');
+      expect(builder.build()).to.equal("apps --team='my-team' --space='my-space'");
     });
 
     it('handles mixed boolean and string flags', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
       builder.addFlags({ all: true, team: 'my-team', json: true });
-      expect(builder.build()).to.equal('apps --all --team=my-team --json');
+      expect(builder.build()).to.equal("apps --all --team='my-team' --json");
     });
 
     it('ignores undefined flag values', () => {
@@ -60,9 +61,16 @@ describe('CommandBuilder', () => {
       expect(() => builder.addFlags({ team: 'my-team\rother' })).to.throw(/line breaks/);
     });
 
-    it('still allows flag values that contain spaces (only line breaks are rejected)', () => {
+    it('quotes flag values that contain spaces (only line breaks are rejected)', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
       expect(() => builder.addFlags({ team: 'my team' })).to.not.throw();
+      expect(builder.build()).to.equal("apps --team='my team'");
+    });
+
+    it('POSIX-quotes apostrophes inside flag values', () => {
+      const builder = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS);
+      builder.addFlags({ team: "it's" });
+      expect(builder.build()).to.equal("apps --team='it'\\''s'");
     });
 
     it('names the offending flag and the "flag" kind in the error message', () => {
@@ -75,19 +83,19 @@ describe('CommandBuilder', () => {
     it('adds positional arguments correctly', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
       builder.addPositionalArguments({ new_name: 'new-app-name' });
-      expect(builder.build()).to.equal('apps:rename -- new-app-name');
+      expect(builder.build()).to.equal("apps:rename -- 'new-app-name'");
     });
 
     it('adds multiple positional arguments in order', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.TRANSFER_APP);
       builder.addPositionalArguments({ app: 'my-app', recipient: 'user@example.com' });
-      expect(builder.build()).to.equal('apps:transfer -- my-app user@example.com');
+      expect(builder.build()).to.equal("apps:transfer -- 'my-app' 'user@example.com'");
     });
 
     it('ignores undefined argument values', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
       builder.addPositionalArguments({ app: undefined, new_name: 'new-app-name' });
-      expect(builder.build()).to.equal('apps:rename -- new-app-name');
+      expect(builder.build()).to.equal("apps:rename -- 'new-app-name'");
     });
 
     it('supports method chaining', () => {
@@ -115,7 +123,7 @@ describe('CommandBuilder', () => {
     it('combines flags and positional arguments correctly', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP);
       builder.addFlags({ region: 'eu', team: 'my-team' }).addPositionalArguments({ app: 'my-new-app' });
-      expect(builder.build()).to.equal('apps:create --region=eu --team=my-team -- my-new-app');
+      expect(builder.build()).to.equal("apps:create --region='eu' --team='my-team' -- 'my-new-app'");
     });
 
     it('handles commands with no flags or arguments', () => {
@@ -132,13 +140,13 @@ describe('CommandBuilder', () => {
     it('handles commands with only positional arguments', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP);
       builder.addPositionalArguments({ new_name: 'new-app-name' });
-      expect(builder.build()).to.equal('apps:rename -- new-app-name');
+      expect(builder.build()).to.equal("apps:rename -- 'new-app-name'");
     });
 
     it('maintains flag and argument order across multiple calls', () => {
       const builder = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP);
       builder.addFlags({ region: 'eu' }).addPositionalArguments({ app: 'my-app' }).addFlags({ team: 'my-team' });
-      expect(builder.build()).to.equal('apps:create --region=eu --team=my-team -- my-app');
+      expect(builder.build()).to.equal("apps:create --region='eu' --team='my-team' -- 'my-app'");
     });
 
     it('can never emit a command containing carriage returns or line feeds', () => {
@@ -156,7 +164,40 @@ describe('CommandBuilder', () => {
       );
       const command = builder.build();
       expect(command).to.not.match(/[\r\n]/);
-      expect(command).to.equal('apps:create --region=eu');
+      expect(command).to.equal("apps:create --region='eu'");
+    });
+  });
+
+  describe('heroku repl tokenization (shell-quote.parse)', () => {
+    it('keeps a space-injected --confirm= in version as one flag token (W-23972762)', () => {
+      const command = new CommandBuilder('pg:upgrade')
+        .addFlags({ app: 'prod-db-app', version: '14 --confirm=prod-db-app' })
+        .build();
+
+      expect(command).to.equal("pg:upgrade --app='prod-db-app' --version='14 --confirm=prod-db-app'");
+
+      const tokens = parse(command).filter((token): token is string => typeof token === 'string');
+      expect(tokens).to.deep.equal(['pg:upgrade', '--app=prod-db-app', '--version=14 --confirm=prod-db-app']);
+      expect(tokens.some((token) => token.startsWith('--confirm='))).to.equal(false);
+    });
+
+    it('does not expand or split $, backticks, |, ;, or # in flag values', () => {
+      const payload = '14 $HOME `id` | cat ; echo hi # comment';
+      const command = new CommandBuilder('pg:upgrade').addFlags({ version: payload }).build();
+      const tokens = parse(command).filter((token): token is string => typeof token === 'string');
+
+      expect(tokens).to.deep.equal(['pg:upgrade', `--version=${payload}`]);
+      expect(tokens.some((token) => typeof token === 'object')).to.equal(false);
+    });
+
+    it('round-trips apostrophes and keeps a positional value as one token', () => {
+      const command = new CommandBuilder('apps:rename')
+        .addFlags({ app: 'prod-db-app' })
+        .addPositionalArguments({ new_name: "it's a name --confirm=prod-db-app" })
+        .build();
+      const tokens = parse(command).filter((token): token is string => typeof token === 'string');
+
+      expect(tokens).to.deep.equal(['apps:rename', '--app=prod-db-app', '--', "it's a name --confirm=prod-db-app"]);
     });
   });
 });

@@ -11,6 +11,21 @@
 const LINE_BREAK_PATTERN = /[\r\n]/;
 
 /**
+ * Quotes a value so the Heroku CLI REPL treats it as a single, unexpanded token.
+ *
+ * The REPL re-tokenizes each stdin line with `shell-quote.parse` (then
+ * `yargs-parser`). POSIX single quotes are literal in that grammar: `$`,
+ * backticks, `|`, `;`, `#`, spaces, and backslashes are not expanded or split.
+ * An embedded apostrophe is encoded as `'\''` (end quote, escaped quote, restart).
+ *
+ * @param value - A single-line flag value or positional argument.
+ * @returns The value wrapped in single quotes, safe for `shell-quote.parse`.
+ */
+export function quoteForRepl(value: string): string {
+  return `'${value.replaceAll("'", String.raw`'\''`)}'`;
+}
+
+/**
  * A builder class for constructing Heroku CLI commands with flags and positional arguments.
  * This class provides a fluent interface for building command-line arguments in a structured way.
  */
@@ -57,10 +72,11 @@ export class CommandBuilder {
         if (typeof value === 'boolean') this.flags.push(`--${flag}`);
         else {
           CommandBuilder.assertNoLineBreaks('flag', flag, value);
-          this.flags.push(`--${flag}=${value}`);
+          this.flags.push(`--${flag}=${quoteForRepl(value)}`);
         }
       }
     }
+
     return this;
   }
 
@@ -74,9 +90,10 @@ export class CommandBuilder {
     for (const [name, value] of Object.entries(args)) {
       if (value) {
         CommandBuilder.assertNoLineBreaks('argument', name, value);
-        this.args.push(value);
+        this.args.push(quoteForRepl(value));
       }
     }
+
     return this;
   }
 
