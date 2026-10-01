@@ -114,7 +114,7 @@ describe('ai topic tools', () => {
     let mocks: ReturnType<typeof setupMcpToolMocks>;
     let mkdtempStub: sinon.SinonStub;
     let writeFileStub: sinon.SinonStub;
-    let rmdirStub: sinon.SinonStub;
+    let rmStub: sinon.SinonStub;
     let tempDir: string;
     let optsFilePath: string;
     let toolCallback: Function;
@@ -124,7 +124,7 @@ describe('ai topic tools', () => {
       optsFilePath = path.join(tempDir, 'opts.json');
       mkdtempStub = sinon.stub(fs, 'mkdtemp').resolves(tempDir);
       writeFileStub = sinon.stub(fs, 'writeFile').resolves();
-      rmdirStub = sinon.stub(fs, 'rmdir').resolves();
+      rmStub = sinon.stub(fs, 'rm').resolves();
 
       mocks = setupMcpToolMocks();
       registerMakeAiInferenceTool(mocks.server, mocks.herokuRepl);
@@ -173,7 +173,7 @@ describe('ai topic tools', () => {
       expect(writeFileStub.calledOnce).to.be.true;
       expect(writeFileStub.firstCall.args[0]).to.equal(optsFilePath);
       expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(rmdirStub.calledOnce).to.be.true;
+      expect(rmStub.calledOnce).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
@@ -222,7 +222,7 @@ describe('ai topic tools', () => {
       expect(writeFileStub.calledOnce).to.be.true;
       expect(writeFileStub.firstCall.args[0]).to.equal(optsFilePath);
       expect(mocks.herokuRepl.executeCommand.calledOnceWith(expectedCommand)).to.be.true;
-      expect(rmdirStub.calledOnce).to.be.true;
+      expect(rmStub.calledOnce).to.be.true;
       expect(result).to.deep.equal({
         content: [{ type: 'text', text: expectedOutput }]
       });
