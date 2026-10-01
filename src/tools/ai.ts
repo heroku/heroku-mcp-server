@@ -183,7 +183,7 @@ export const registerMakeAiInferenceTool = (server: McpServer, herokuRepl: Herok
         .build();
 
       const output = await herokuRepl.executeCommand(command);
-      await fs.rmdir(tempDir, { recursive: true });
+      await fs.rm(tempDir, { recursive: true });
       return handleCliOutput(output);
     }
   );
