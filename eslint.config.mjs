@@ -35,6 +35,7 @@ export default [
       camelcase: 'warn',
       'dot-notation': 'warn',
       'import/namespace': 'warn',
+      'import/no-unresolved': 'off',
       'mocha/consistent-spacing-between-blocks': 'warn',
       'mocha/max-top-level-suites': 'warn',
       'mocha/no-mocha-arrows': 'warn',
