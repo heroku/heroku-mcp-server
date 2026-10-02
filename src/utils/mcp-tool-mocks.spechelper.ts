@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 
 /**
