@@ -5,6 +5,18 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.11](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.10...mcp-server-v1.2.11) (2026-10-06)
+
+
+### Bug Fixes
+
+* restore .js extensions on SDK subpath imports to fix ERR_MODULE_NOT_FOUND ([#284](https://github.com/heroku/heroku-mcp-server/issues/284)) ([26fe3ce](https://github.com/heroku/heroku-mcp-server/commit/26fe3ce9d857fbec271d04507e35b1067cb6c598))
+
+
+### Dependencies
+
+* bump @modelcontextprotocol/sdk from 1.30.1 to 1.31.0 ([#287](https://github.com/heroku/heroku-mcp-server/issues/287)) ([8414aca](https://github.com/heroku/heroku-mcp-server/commit/8414acaddaee8a917280d7f708411ee08ec97550))
+
 ## [1.2.10](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.9...mcp-server-v1.2.10) (2026-10-01)
 
 
