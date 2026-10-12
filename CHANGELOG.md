@@ -5,6 +5,14 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.12](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.11...mcp-server-v1.2.12) (2026-10-12)
+
+
+### Dependencies
+
+* bump @modelcontextprotocol/sdk from 1.31.0 to 1.32.1 ([#291](https://github.com/heroku/heroku-mcp-server/issues/291)) ([225b650](https://github.com/heroku/heroku-mcp-server/commit/225b650dd17f7079cc60de00bdb72a9ee80725f4))
+* bump proxy-addr from 2.0.7 to 2.0.8 ([#290](https://github.com/heroku/heroku-mcp-server/issues/290)) ([f6f1edf](https://github.com/heroku/heroku-mcp-server/commit/f6f1edfcffe5fac64789c7271fcf6a646fdce7aa))
+
 ## [1.2.11](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.10...mcp-server-v1.2.11) (2026-10-06)
 
 
