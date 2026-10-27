@@ -88,7 +88,7 @@
     "prepublishOnly": "npm run build && npm run build:mcpb"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.5",
+    "serialize-javascript": "^7.1.4",
     "tmp": "^0.2.7"
   }
 }
