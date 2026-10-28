@@ -89,7 +89,7 @@ const agentMessageSchema = z.object({
  */
 const agentToolParametersSchema = z.object({
   type: z.string(),
-  properties: z.record(z.unknown()),
+  properties: z.record(z.string(), z.unknown()),
   required: z.array(z.string())
 });
 
