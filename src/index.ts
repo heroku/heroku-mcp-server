@@ -34,13 +34,29 @@ const server = new McpServer(
 const requestTimeout = isNaN(Number(process.env.MCP_SERVER_REQUEST_TIMEOUT))
   ? 15_000
   : Number(process.env.MCP_SERVER_REQUEST_TIMEOUT);
-const herokuRepl = new HerokuREPL(requestTimeout);
+// Tear down the underlying Heroku CLI REPL process after this many ms of
+// inactivity so an idle server does not keep a CLI process spinning
+// (W-24704373 / #180). Defaults to 5 minutes; set to 0 to disable idle teardown.
+const idleTimeout = isNaN(Number(process.env.MCP_SERVER_IDLE_TIMEOUT))
+  ? 300_000
+  : Number(process.env.MCP_SERVER_IDLE_TIMEOUT);
+const herokuRepl = new HerokuREPL(requestTimeout, idleTimeout);
 
 // Listen for MCP-formatted fatal startup errors
 herokuRepl.on('fatalError', (mcpError) => {
   process.stderr.write(JSON.stringify(mcpError) + '\n');
   process.exit(1);
 });
+
+// Clean up the Heroku CLI REPL process on shutdown so it is not left running as
+// an orphan when the MCP client terminates the server (W-24704373 / #180).
+const shutdown = (): void => {
+  herokuRepl[Symbol.dispose]();
+  process.exit(0);
+};
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+  process.once(signal, shutdown);
+}
 
 // App-related tools
 apps.registerListAppsTool(server, herokuRepl);

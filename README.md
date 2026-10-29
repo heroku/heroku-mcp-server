@@ -505,3 +505,10 @@ Example configuration with custom timeout:
   }
 }
 ```
+
+### `MCP_SERVER_IDLE_TIMEOUT`
+
+Timeout in milliseconds of inactivity after which the underlying Heroku CLI process is shut down so an idle server does
+not keep a CLI process running. The process is started on the first tool call and transparently restarted on the next
+call after a teardown. Defaults to 300000 (5 minutes) if not set; set to `0` to disable idle teardown and keep the
+process running for the lifetime of the server.
