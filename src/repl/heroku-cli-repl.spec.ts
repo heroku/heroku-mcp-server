@@ -290,6 +290,43 @@ describe('HerokuREPL', () => {
 
       idleRepl[Symbol.dispose]();
     });
+
+    it('delivers and resolves a command issued after an idle teardown (regression: orphaned iterator hang)', async () => {
+      // Regression for the respawn hang: tearing the process down must not swap
+      // out the pauseIterator promise the async iterator is parked on, otherwise
+      // the next command's resolver wakes a promise nobody is awaiting and the
+      // respawned process never receives the queued command (W-24704373 / #180).
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      // Auto-idle disabled (0); we drive teardown manually to control timing.
+      const idleRepl = new HerokuREPL(500, 0);
+      idleRepl['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of idleRepl) {
+          // drain
+        }
+      })();
+
+      // First command completes normally.
+      const first = idleRepl.executeCommand('apps');
+      setTimeout(() => mockProcess.stdout.emit('data', 'first output\n<<<END RESULTS>>>'));
+      expect(await first).to.include('first output');
+
+      // Simulate the idle timer firing while the queue is empty.
+      idleRepl['teardownIdleProcess']();
+      expect(idleRepl['process']).to.be.undefined;
+
+      // A command issued after teardown must respawn the process AND actually
+      // resolve — not hang. The respawned process signals ready, then returns.
+      const second = idleRepl.executeCommand('addons');
+      setTimeout(() => mockProcess.stdout.emit('data', 'heroku >'), 0);
+      setTimeout(() => mockProcess.stdout.emit('data', 'second output\n<<<END RESULTS>>>'), 10);
+      expect(await second).to.include('second output');
+
+      idleRepl[Symbol.dispose]();
+    });
   });
 
   describe('MCP startup error handling', () => {

@@ -380,7 +380,12 @@ export class HerokuREPL extends EventEmitter {
       return;
     }
     this.isReady = false;
-    this.pauseQueue();
+    // NB: do NOT call pauseQueue() here. The async iterator is already parked on
+    // the current `pauseIterator` promise (created when the last command drained
+    // the queue). Replacing it would orphan the promise the iterator is awaiting,
+    // so the next executeCommand would resolve a brand-new resolver the iterator
+    // is not listening to — the respawned process would come up but the queued
+    // command would never be written to its stdin, hanging the call (W-24704373).
     if (this.process) {
       // Remove listeners first so the 'close' handler does not treat this
       // intentional teardown as an unexpected exit and restart the process.
