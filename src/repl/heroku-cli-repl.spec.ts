@@ -31,8 +31,13 @@ describe('HerokuREPL', () => {
     // Stub the spawn function
     spawnStub = sinon.stub(HerokuREPL, 'spawn').returns(mockProcess as any);
 
-    repl = new HerokuREPL(500);
+    // Idle teardown disabled (0) for the shared fixture so these tests are not
+    // affected by the idle timer; the dedicated idle tests opt back in.
+    repl = new HerokuREPL(500, 0);
 
+    // The process is started lazily. Most tests below assume
+    // a spawned, ready process, so prime one explicitly here.
+    repl['initializeProcess']();
     mockProcess.stdout.emit('data', 'heroku >');
     (async () => {
       for await (const command of repl) {
@@ -181,6 +186,149 @@ describe('HerokuREPL', () => {
     });
   });
 
+  describe('lazy start and idle teardown', () => {
+    // These tests construct their own REPL instances so they can observe spawn
+    // behavior from a clean slate, independent of the primed shared fixture.
+
+    it('does not spawn a process at construction', () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const lazyRepl = new HerokuREPL(500, 0);
+      expect(spawnStub.called).to.be.false;
+      expect(lazyRepl['process']).to.be.undefined;
+
+      lazyRepl[Symbol.dispose]();
+    });
+
+    it('spawns the process lazily on the first executeCommand', () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const lazyRepl = new HerokuREPL(500, 0);
+      void (async () => {
+        for await (const command of lazyRepl) {
+          // drain
+        }
+      })();
+
+      void lazyRepl.executeCommand('apps');
+      expect(spawnStub.calledOnce).to.be.true;
+      expect(lazyRepl['process']).to.not.be.undefined;
+
+      lazyRepl[Symbol.dispose]();
+    });
+
+    it('tears down a ready, idle process after the idle timeout', () => {
+      repl[Symbol.dispose]();
+      const clock = sinon.useFakeTimers();
+      spawnStub.resetHistory();
+      mockProcess.kill.resetHistory();
+
+      const idleRepl = new HerokuREPL(500, 1000);
+      idleRepl['initializeProcess']();
+      expect(spawnStub.calledOnce).to.be.true;
+
+      // Process becomes ready with an empty queue -> schedules idle teardown.
+      mockProcess.stdout.emit('data', 'heroku >');
+      expect(mockProcess.kill.called).to.be.false;
+
+      clock.tick(1001);
+
+      expect(mockProcess.kill.called).to.be.true;
+      expect(idleRepl['process']).to.be.undefined;
+      expect(idleRepl['isReady']).to.be.false;
+
+      clock.restore();
+      idleRepl[Symbol.dispose]();
+    });
+
+    it('does not tear down while a command is queued or in flight', () => {
+      repl[Symbol.dispose]();
+      const clock = sinon.useFakeTimers();
+      spawnStub.resetHistory();
+      mockProcess.kill.resetHistory();
+
+      const idleRepl = new HerokuREPL(500, 1000);
+      idleRepl['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+
+      // Queue work after the idle timer was armed; the pending timer must not
+      // kill a process that now has work to do.
+      void idleRepl.executeCommand('apps');
+      clock.tick(1001);
+
+      expect(mockProcess.kill.called).to.be.false;
+      expect(idleRepl['process']).to.not.be.undefined;
+
+      clock.restore();
+      idleRepl[Symbol.dispose]();
+    });
+
+    it('respawns the process on the next command after an idle teardown', () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const idleRepl = new HerokuREPL(500, 1000);
+      idleRepl['initializeProcess']();
+      expect(spawnStub.calledOnce).to.be.true;
+
+      // Simulate an idle teardown.
+      idleRepl['teardownIdleProcess']();
+      expect(idleRepl['process']).to.be.undefined;
+
+      spawnStub.resetHistory();
+      void (async () => {
+        for await (const command of idleRepl) {
+          // drain
+        }
+      })();
+      void idleRepl.executeCommand('apps');
+
+      expect(spawnStub.calledOnce).to.be.true;
+      expect(idleRepl['process']).to.not.be.undefined;
+
+      idleRepl[Symbol.dispose]();
+    });
+
+    it('delivers and resolves a command issued after an idle teardown', async () => {
+      // Tearing the process down must not swap out the pauseIterator promise the
+      // async iterator is parked on, otherwise the next command's resolver wakes a
+      // promise nobody is awaiting and the respawned process never receives the
+      // queued command — the request would hang forever.
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      // Auto-idle disabled (0); we drive teardown manually to control timing.
+      const idleRepl = new HerokuREPL(500, 0);
+      idleRepl['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of idleRepl) {
+          // drain
+        }
+      })();
+
+      // First command completes normally.
+      const first = idleRepl.executeCommand('apps');
+      setTimeout(() => mockProcess.stdout.emit('data', 'first output\n<<<END RESULTS>>>'));
+      expect(await first).to.include('first output');
+
+      // Simulate the idle timer firing while the queue is empty.
+      idleRepl['teardownIdleProcess']();
+      expect(idleRepl['process']).to.be.undefined;
+
+      // A command issued after teardown must respawn the process AND actually
+      // resolve — not hang. The respawned process signals ready, then returns.
+      const second = idleRepl.executeCommand('addons');
+      setTimeout(() => mockProcess.stdout.emit('data', 'heroku >'), 0);
+      setTimeout(() => mockProcess.stdout.emit('data', 'second output\n<<<END RESULTS>>>'), 10);
+      expect(await second).to.include('second output');
+
+      idleRepl[Symbol.dispose]();
+    });
+  });
+
   describe('MCP startup error handling', () => {
     it('should emit fatalError if spawn throws', () => {
       spawnStub.restore();
@@ -217,6 +365,169 @@ describe('HerokuREPL', () => {
     });
   });
 
+  describe('respawn and failure hardening', () => {
+    it('resolves a command issued after an unexpected close re-parks the iterator', async () => {
+      // The 'close' handler calls pauseQueue() while the async iterator is parked
+      // on the current pauseIterator promise. pauseQueue() must be idempotent, or
+      // it orphans that promise and the post-close command never reaches stdin.
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      // First command completes, draining the queue and parking the iterator.
+      const first = r.executeCommand('apps');
+      setTimeout(() => mockProcess.stdout.emit('data', 'first\n<<<END RESULTS>>>'));
+      expect(await first).to.include('first');
+
+      // Unexpected close (code 1) restarts the process and calls pauseQueue().
+      mockProcess.emit('close', 1);
+      // Respawned process signals ready.
+      mockProcess.stdout.emit('data', 'heroku >');
+
+      // A command issued after the close must reach stdin and actually resolve.
+      const second = r.executeCommand('addons');
+      setTimeout(() => mockProcess.stdout.emit('data', 'second\n<<<END RESULTS>>>'));
+      expect(await second).to.include('second');
+
+      r[Symbol.dispose]();
+    });
+
+    it('settles a queued command instead of hanging when no CLI is available', async () => {
+      repl[Symbol.dispose]();
+      const spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync').returns({
+        error: new Error('not found'),
+        status: 1,
+        stdout: ''
+      } as any);
+
+      const r = new HerokuREPL(500, 0);
+      const fatalSpy = sinon.spy();
+      r.on('fatalError', fatalSpy);
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('No suitable Heroku CLI found');
+      expect(fatalSpy.called).to.be.true;
+
+      r[Symbol.dispose]();
+      spawnSyncStub.restore();
+    });
+
+    it('settles a queued command instead of hanging when spawn throws', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.restore();
+      const badSpawn = sinon.stub(HerokuREPL, 'spawn').throws(new Error('spawn boom'));
+
+      const r = new HerokuREPL(500, 0);
+      const fatalSpy = sinon.spy();
+      r.on('fatalError', fatalSpy);
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('spawn boom');
+      expect(fatalSpy.called).to.be.true;
+
+      r[Symbol.dispose]();
+      badSpawn.restore();
+    });
+
+    it('settles a command if the process spawns but never becomes ready', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      // Never emit 'heroku >': the process is up but never ready to dispatch.
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('The command failed to complete in 500ms');
+
+      r[Symbol.dispose]();
+    });
+
+    it('resolves the CLI once and reuses it across respawns', () => {
+      repl[Symbol.dispose]();
+      const spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync');
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match.any).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/11.0.0 (darwin-x64) node-v18.17.0'
+      } as any);
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      r['initializeProcess']();
+      r['initializeProcess']();
+
+      const herokuProbes = spawnSyncStub.getCalls().filter((c) => c.args[0] === 'heroku').length;
+      expect(herokuProbes).to.equal(1);
+
+      r[Symbol.dispose]();
+      spawnSyncStub.restore();
+    });
+
+    it('ignores late stdout from a torn-down process', () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      expect(r['isReady']).to.be.true;
+
+      r['teardownIdleProcess']();
+      expect(r['isReady']).to.be.false;
+
+      // Late output from the killed child must not revive readiness.
+      mockProcess.stdout.emit('data', 'heroku >');
+      expect(r['isReady']).to.be.false;
+
+      r[Symbol.dispose]();
+    });
+
+    it('settles pending commands when the instance is disposed mid-flight', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const pending = r.executeCommand('apps');
+      // Dispose before the command completes.
+      r[Symbol.dispose]();
+
+      const result = await pending;
+      expect(result).to.include('shut down before the command completed');
+    });
+  });
+
   describe('getHerokuCliCommandAndArgs', () => {
     let spawnSyncStub: sinon.SinonStub;
     let fatalSpy: sinon.SinonSpy;
@@ -225,13 +536,24 @@ describe('HerokuREPL', () => {
       spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync');
       fatalSpy = sinon.spy();
       repl.on('fatalError', fatalSpy);
+      // The shared fixture already resolved (and now caches) a CLI via the real
+      // spawnSync in its beforeEach. Clear that cache so these tests exercise the
+      // resolver against the stub rather than returning the cached real result.
+      repl['resolvedCli'] = undefined;
     });
 
     afterEach(() => {
       spawnSyncStub.restore();
     });
 
-    it('should return npx command when npx is available', () => {
+    it('should prefer the local heroku CLI (>= 10.10.0) over npx, without checking npx', () => {
+      // heroku CLI available with version >= 10.10.0
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/10.15.0 (darwin-x64) node-v18.17.0'
+      });
+      // npx is also available, but must not be used when a suitable local CLI exists
       spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
@@ -241,45 +563,15 @@ describe('HerokuREPL', () => {
       const result = repl['getHerokuCliCommandAndArgs']();
 
       expect(result).to.deep.equal({
-        cliCommand: 'npx',
-        cliArgs: ['-y', 'heroku@latest', 'repl']
-      });
-      expect(fatalSpy.called).to.be.false;
-    });
-
-    it('should return heroku command when npx is not available but heroku CLI >= 10.10.0 is available', () => {
-      // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
-      // heroku CLI available with version >= 10.10.0
-      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: null,
-        status: 0,
-        stdout: 'heroku/10.15.0 (darwin-x64) node-v18.17.0'
-      });
-
-      const result = repl['getHerokuCliCommandAndArgs']();
-
-      expect(result).to.deep.equal({
         cliCommand: 'heroku',
         cliArgs: ['repl']
       });
+      // npx must not even be probed when a suitable local CLI is found
+      expect(spawnSyncStub.calledWith('npx', ['--version'], sinon.match.any)).to.be.false;
       expect(fatalSpy.called).to.be.false;
     });
 
-    it('should return heroku command when npx is not available but heroku CLI > 10.x is available', () => {
-      // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
-      // heroku CLI available with version > 10.x
+    it('should prefer the local heroku CLI when it is > 10.x', () => {
       spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
@@ -295,128 +587,140 @@ describe('HerokuREPL', () => {
       expect(fatalSpy.called).to.be.false;
     });
 
-    it('should emit fatalError and return null when npx is not available and heroku CLI < 10.10.0 is available', () => {
-      // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
-      // heroku CLI available but version < 10.10.0
-      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: null,
-        status: 0,
-        stdout: 'heroku/10.9.0 (darwin-x64) node-v18.17.0'
-      });
-
-      const result = repl['getHerokuCliCommandAndArgs']();
-
-      expect(result).to.be.null;
-      expect(fatalSpy.called).to.be.true;
-      const mcpError = fatalSpy.firstCall.args[0];
-      expect(mcpError.content[0].text).to.include('Startup error: Heroku CLI version 10.10.0 or higher is required');
-      expect(mcpError.content[0].text).to.include('Detected version: 10.9.0');
-    });
-
-    it('should emit fatalError and return null when npx is not available and heroku CLI is not available', () => {
-      // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
+    it('should fall back to npx when heroku CLI is not available', () => {
       // heroku CLI not available
       spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: new Error('heroku not found'),
         status: 1,
         stdout: ''
       });
+      // npx available
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: null,
+        status: 0,
+        stdout: '9.8.1'
+      });
 
       const result = repl['getHerokuCliCommandAndArgs']();
 
-      expect(result).to.be.null;
-      expect(fatalSpy.called).to.be.true;
-      const mcpError = fatalSpy.firstCall.args[0];
-      expect(mcpError.content[0].text).to.include(
-        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
-      );
+      expect(result).to.deep.equal({
+        cliCommand: 'npx',
+        cliArgs: ['-y', 'heroku@latest', 'repl']
+      });
+      expect(fatalSpy.called).to.be.false;
     });
 
-    it('should emit fatalError and return null when npx is not available and heroku CLI version format is unexpected', () => {
-      // npx not available
+    it('should fall back to npx when the local heroku CLI is too old (< 10.10.0)', () => {
+      // heroku CLI available but version < 10.10.0 — too old for `repl`
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/10.9.0 (darwin-x64) node-v18.17.0'
+      });
+      // npx available
       spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
+        error: null,
+        status: 0,
+        stdout: '9.8.1'
       });
 
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.deep.equal({
+        cliCommand: 'npx',
+        cliArgs: ['-y', 'heroku@latest', 'repl']
+      });
+      expect(fatalSpy.called).to.be.false;
+    });
+
+    it('should fall back to npx when the heroku CLI version format is unexpected', () => {
       // heroku CLI available but version format is unexpected
       spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: 'some unexpected output without version'
       });
-
-      const result = repl['getHerokuCliCommandAndArgs']();
-
-      expect(result).to.be.null;
-      expect(fatalSpy.called).to.be.true;
-      const mcpError = fatalSpy.firstCall.args[0];
-      expect(mcpError.content[0].text).to.include(
-        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
-      );
-    });
-
-    it('should emit fatalError and return null when npx is not available and heroku CLI returns error', () => {
-      // npx not available
+      // npx available
       spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
-      // heroku CLI returns error
-      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('heroku command failed'),
-        status: 1,
-        stdout: ''
+        error: null,
+        status: 0,
+        stdout: '9.8.1'
       });
 
       const result = repl['getHerokuCliCommandAndArgs']();
 
-      expect(result).to.be.null;
-      expect(fatalSpy.called).to.be.true;
-      const mcpError = fatalSpy.firstCall.args[0];
-      expect(mcpError.content[0].text).to.include(
-        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
-      );
+      expect(result).to.deep.equal({
+        cliCommand: 'npx',
+        cliArgs: ['-y', 'heroku@latest', 'repl']
+      });
+      expect(fatalSpy.called).to.be.false;
     });
 
-    it('should emit fatalError and return null when npx is not available and heroku CLI stdout is not a string', () => {
-      // npx not available
-      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
-        error: new Error('npx not found'),
-        status: 1,
-        stdout: ''
-      });
-
+    it('should fall back to npx when the heroku CLI stdout is not a string', () => {
       // heroku CLI available but stdout is not a string
       spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
         error: null,
         status: 0,
         stdout: Buffer.from('heroku/10.15.0')
       });
+      // npx available
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: null,
+        status: 0,
+        stdout: '9.8.1'
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.deep.equal({
+        cliCommand: 'npx',
+        cliArgs: ['-y', 'heroku@latest', 'repl']
+      });
+      expect(fatalSpy.called).to.be.false;
+    });
+
+    it('should emit fatalError and return null when neither heroku CLI nor npx is available', () => {
+      // heroku CLI not available
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: new Error('heroku not found'),
+        status: 1,
+        stdout: ''
+      });
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
 
       const result = repl['getHerokuCliCommandAndArgs']();
 
       expect(result).to.be.null;
       expect(fatalSpy.called).to.be.true;
       const mcpError = fatalSpy.firstCall.args[0];
-      expect(mcpError.content[0].text).to.include(
-        'Startup error: npx is not installed and Heroku CLI (10.10.0+) is not available'
-      );
+      expect(mcpError.content[0].text).to.include('Startup error: No suitable Heroku CLI found');
+    });
+
+    it('should emit fatalError and return null when a too-old heroku CLI and no npx are available', () => {
+      // heroku CLI present but too old
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/10.9.0 (darwin-x64) node-v18.17.0'
+      });
+      // npx not available
+      spawnSyncStub.withArgs('npx', ['--version'], sinon.match({ encoding: 'utf-8' })).returns({
+        error: new Error('npx not found'),
+        status: 1,
+        stdout: ''
+      });
+
+      const result = repl['getHerokuCliCommandAndArgs']();
+
+      expect(result).to.be.null;
+      expect(fatalSpy.called).to.be.true;
+      const mcpError = fatalSpy.firstCall.args[0];
+      expect(mcpError.content[0].text).to.include('Startup error: No suitable Heroku CLI found');
     });
   });
 });
