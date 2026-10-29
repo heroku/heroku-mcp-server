@@ -5,6 +5,25 @@ All notable changes to the Heroku Platform MCP Server will be documented in this
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and uses
 [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.13](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.12...mcp-server-v1.2.13) (2026-10-29)
+
+
+### Bug Fixes
+
+* **repl:** prefer local Heroku CLI over npx and shut down idle REPL process ([#308](https://github.com/heroku/heroku-mcp-server/issues/308)) ([13e5f93](https://github.com/heroku/heroku-mcp-server/commit/13e5f93c57d5d9def02f6b819ec195f7bd42cc83))
+
+
+### Dependencies
+
+* bump @hono/node-server from 2.1.0 to 2.1.5 ([#309](https://github.com/heroku/heroku-mcp-server/issues/309)) ([edf0fcb](https://github.com/heroku/heroku-mcp-server/commit/edf0fcb03b3ae8c098ffee87ffaec3c7f19f3ab9))
+* bump body-parser from 2.3.0 to 2.4.0 ([#303](https://github.com/heroku/heroku-mcp-server/issues/303)) ([642a0c2](https://github.com/heroku/heroku-mcp-server/commit/642a0c2aa23caf7fb7fbd56cc0bd230eda572cf2))
+* bump fast-uri from 3.1.8 to 3.1.9 ([#301](https://github.com/heroku/heroku-mcp-server/issues/301)) ([7a252ef](https://github.com/heroku/heroku-mcp-server/commit/7a252efa37434585b422a6758bf7fa1344bceea4))
+* bump ip-address from 10.7.2 to 10.7.5 ([#306](https://github.com/heroku/heroku-mcp-server/issues/306)) ([a074232](https://github.com/heroku/heroku-mcp-server/commit/a0742323f6b1f5f008bd86060a760ed54fd72e8b))
+* bump node-forge from 1.4.0 to 1.4.2 ([#310](https://github.com/heroku/heroku-mcp-server/issues/310)) ([e3d83bd](https://github.com/heroku/heroku-mcp-server/commit/e3d83bdd0efb9d5804f80467e8b5a33fac7ea54c))
+* bump tar-stream from 3.2.1 to 3.2.2 ([#295](https://github.com/heroku/heroku-mcp-server/issues/295)) ([c9638f4](https://github.com/heroku/heroku-mcp-server/commit/c9638f445a14b911662ac50db216ea37f46a5c5c))
+* bump undici from 7.30.0 to 7.30.1 ([#302](https://github.com/heroku/heroku-mcp-server/issues/302)) ([774c90e](https://github.com/heroku/heroku-mcp-server/commit/774c90ebd37c499cf63dfeda8f29704b37469ae1))
+* bump zod 3 -&gt; 4.6.7 (security) ([#307](https://github.com/heroku/heroku-mcp-server/issues/307)) ([970528f](https://github.com/heroku/heroku-mcp-server/commit/970528fc07bc75fd939f88f4308e301dedeffb3a))
+
 ## [1.2.12](https://github.com/heroku/heroku-mcp-server/compare/mcp-server-v1.2.11...mcp-server-v1.2.12) (2026-10-12)
 
 
