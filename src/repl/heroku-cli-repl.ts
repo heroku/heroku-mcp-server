@@ -44,6 +44,9 @@ export class HerokuREPL extends EventEmitter {
   private commandTimeoutId: NodeJS.Timeout | undefined;
   private readonly idleTimeout: number;
   private idleTimeoutId: NodeJS.Timeout | undefined;
+  private restartTimeoutId: NodeJS.Timeout | undefined;
+  private pauseIteratorResolved = false;
+  private resolvedCli: { cliCommand: string; cliArgs: string[] } | undefined;
   private readonly userAgent: string = `Heroku-MCP-Server/${VERSION} (${process.platform}; ${process.arch}; node/${process.version})`;
 
   /**
@@ -53,7 +56,7 @@ export class HerokuREPL extends EventEmitter {
    * @param idleTimeout ms of inactivity after which the idle REPL process is torn
    *   down so it stops consuming CPU (W-24704373 / #180). 0 disables idle teardown.
    */
-  public constructor(commandTimeout = 15_000, idleTimeout = 300_000) {
+  public constructor(commandTimeout = 15_000, idleTimeout = 600_000) {
     super();
     this.commandTimeout = commandTimeout;
     this.idleTimeout = idleTimeout;
@@ -108,14 +111,24 @@ export class HerokuREPL extends EventEmitter {
     // A command cancels any pending idle teardown and lazily (re)starts the REPL
     // process if it was never started or was torn down while idle (W-24704373 / #180).
     this.clearIdleTimeout();
-    this.ensureProcess();
     // Replace with Promise.withResolvers once we move to node 22
     let resolver!: (value: string) => void;
     const commandPromise = new Promise<string>((resolve) => {
       resolver = resolve;
     });
+    // Enqueue BEFORE (re)starting the process so that a synchronous startup
+    // failure (no suitable CLI, spawn throw) can settle this command's promise
+    // with an error instead of leaving the caller hanging (see handleFatal).
     this.commandQueue.push({ command, promise: commandPromise, resolver });
+    this.ensureProcess();
     this.pauseIteratorResolver?.();
+    // Bound the wait even if the process spawns but never becomes ready to
+    // dispatch (e.g. it never prints the prompt). Normally the async iterator
+    // re-arms this on dispatch; arming here covers the never-ready case so the
+    // command times out and restarts instead of hanging forever.
+    if (!this.isReady && this.commandQueue.length > 0) {
+      this.setCommandTimeout();
+    }
     return commandPromise;
   }
 
@@ -136,6 +149,15 @@ export class HerokuREPL extends EventEmitter {
    * @returns An object with cliCommand and cliArgs, or null if no CLI is available.
    */
   private getHerokuCliCommandAndArgs(): { cliCommand: string; cliArgs: string[] } | null {
+    // Reuse the previously resolved CLI. Idle teardown respawns the process
+    // (W-24704373 / #180), and re-running the blocking spawnSync probes on every
+    // respawn would add latency to the hot path. The resolution does not change
+    // within a process lifetime, so cache the first successful result. Failures
+    // are not cached so a transient probe failure can recover on the next call.
+    if (this.resolvedCli) {
+      return this.resolvedCli;
+    }
+
     // Prefer a locally installed heroku CLI.
     // On Windows, we need to use shell: true to find heroku.cmd
     const herokuCheck = HerokuREPL.spawnSync('heroku', ['version'], {
@@ -147,7 +169,8 @@ export class HerokuREPL extends EventEmitter {
       if (versionMatch) {
         const [major, minor] = versionMatch[1].split('.').map(Number);
         if (major > 10 || (major === 10 && minor >= 10)) {
-          return { cliCommand: 'heroku', cliArgs: ['repl'] };
+          this.resolvedCli = { cliCommand: 'heroku', cliArgs: ['repl'] };
+          return this.resolvedCli;
         }
         // Local CLI is present but too old for `repl` — fall through to npx@latest.
       }
@@ -160,14 +183,12 @@ export class HerokuREPL extends EventEmitter {
       shell: process.platform === 'win32'
     });
     if (!npxCheck.error && npxCheck.status === 0) {
-      return { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', 'repl'] };
+      this.resolvedCli = { cliCommand: 'npx', cliArgs: ['-y', 'heroku@latest', 'repl'] };
+      return this.resolvedCli;
     }
 
-    this.emit(
-      'fatalError',
-      handleCliOutput(
-        'Startup error: No suitable Heroku CLI found. Install the Heroku CLI (version 10.10.0 or higher) in your PATH, or make npx available. Please install one of them.'
-      )
+    this.handleFatal(
+      'Startup error: No suitable Heroku CLI found. Install the Heroku CLI (version 10.10.0 or higher) in your PATH, or make npx available. Please install one of them.'
     );
     return null;
   }
@@ -184,6 +205,7 @@ export class HerokuREPL extends EventEmitter {
   private initializeProcess(): void {
     this.isReady = false;
     this.clearIdleTimeout();
+    this.clearRestartTimeout();
     if (this.abortController.signal.aborted) {
       return;
     }
@@ -195,8 +217,7 @@ export class HerokuREPL extends EventEmitter {
     const { cliCommand, cliArgs } = cliInfo;
 
     if (this.process) {
-      this.process.removeAllListeners();
-      this.process.kill();
+      this.killChild(this.process);
       this.process = undefined;
     }
 
@@ -215,24 +236,21 @@ export class HerokuREPL extends EventEmitter {
         }
       });
     } catch (err) {
-      // Emit MCP error and abort
-      this.emit('fatalError', handleCliOutput(`Startup error: ${(err as Error).message}`));
+      // Settle the queued command(s) with the error and surface it; do not exit.
+      this.handleFatal(`Startup error: ${(err as Error).message}`);
       return;
     }
 
     this.process.once('error', (err: Error) => {
-      this.emit('fatalError', handleCliOutput(`Startup error: ${err.message}`));
+      this.handleFatal(`Startup error: ${err.message}`);
     });
 
     this.process.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
-      // Detect old CLI warning and emit MCP error
+      // Detect old CLI warning and surface it as a fatal error
       if (output.includes('Warning: --repl is not a heroku command.')) {
-        this.emit(
-          'fatalError',
-          handleCliOutput(
-            'Startup error: Your Heroku CLI version does not support --repl mode. Please upgrade to the latest Heroku CLI.'
-          )
+        this.handleFatal(
+          'Startup error: Your Heroku CLI version does not support --repl mode. Please upgrade to the latest Heroku CLI.'
         );
         return;
       }
@@ -274,8 +292,11 @@ export class HerokuREPL extends EventEmitter {
         void this.initializeProcess();
       } else {
         // The process was closed normally but this could be
-        // from a rogue command or a user aborting the parent process
-        setTimeout(() => void this.initializeProcess(), 1000);
+        // from a rogue command or a user aborting the parent process.
+        // Track the timer so an idle teardown / abort can cancel a pending
+        // restart, and unref it so it can't by itself keep Node alive.
+        this.restartTimeoutId = setTimeout(() => void this.initializeProcess(), 1000);
+        this.restartTimeoutId.unref?.();
       }
     });
   }
@@ -315,9 +336,22 @@ export class HerokuREPL extends EventEmitter {
    * or for the REPL to be ready for input
    */
   private pauseQueue(): void {
+    // Idempotent on purpose: if the async iterator is already parked on an
+    // unresolved pauseIterator promise, keep it. Replacing it would orphan the
+    // promise the iterator is awaiting, so a later resolver call would wake a
+    // promise nobody is listening to and the queued command would never be
+    // written to stdin — the respawn/close hang this class has hit twice
+    // (W-24704373). Only mint a fresh promise once the current one has resolved.
+    if (this.pauseIterator && !this.pauseIteratorResolved) {
+      return;
+    }
+    this.pauseIteratorResolved = false;
     // Replace with Promise.withResolvers once we move to node 22
     this.pauseIterator = new Promise((resolve) => {
-      this.pauseIteratorResolver = resolve;
+      this.pauseIteratorResolver = () => {
+        this.pauseIteratorResolved = true;
+        resolve();
+      };
     });
   }
 
@@ -331,8 +365,93 @@ export class HerokuREPL extends EventEmitter {
       // in case it's in a bad state or an error occurred
       // that we can't recover from
       void this.initializeProcess();
-      this.handleOutput(`The command failed to complete in ${this.commandTimeout}ms\n${COMMAND_END_RESULTS_MESSAGE}\n`);
+      // Settle the head command directly rather than injecting a synthetic END
+      // marker through handleOutput: the latter only resolves when a command is
+      // actively processing, so a command that was queued but never dispatched
+      // (the process spawned but never printed the prompt) would hang.
+      this.failHeadCommand(`The command failed to complete in ${this.commandTimeout}ms`);
     }, this.commandTimeout);
+  }
+
+  /**
+   * Resolves the command at the head of the queue with the given (error) text
+   * and resets per-command state. Used by the command-timeout path so a stalled
+   * or never-dispatched command settles instead of hanging.
+   */
+  private failHeadCommand(message: string): void {
+    clearTimeout(this.commandTimeoutId);
+    this.isProcessingCommand = false;
+    this.buffer = '';
+    const head = this.commandQueue.shift();
+    head?.resolver(message);
+    if (this.commandQueue.length === 0) {
+      this.pauseQueue();
+      this.scheduleIdleTimeout();
+    }
+  }
+
+  /**
+   * Surfaces a fatal/startup error and settles every pending command with it, so
+   * a transient respawn failure returns an error to the caller instead of
+   * hanging the request (the server stays up and can retry on the next command).
+   *
+   * @param message the error text to surface and resolve pending commands with
+   */
+  private handleFatal(message: string): void {
+    this.emit('fatalError', handleCliOutput(message));
+    this.failPendingCommands(message);
+  }
+
+  /**
+   * Resolves every queued command with the given (error) text and resets
+   * per-command state. The iterator is left parked on its current promise.
+   *
+   * @param message the text to resolve each pending command with
+   */
+  private failPendingCommands(message: string): void {
+    clearTimeout(this.commandTimeoutId);
+    this.isProcessingCommand = false;
+    this.buffer = '';
+    while (this.commandQueue.length > 0) {
+      this.commandQueue.shift()?.resolver(message);
+    }
+    this.pauseQueue();
+  }
+
+  /**
+   * Tears down a child process we own. Detaches only the listeners we added
+   * (not Node's internal 'exit' handler, which spawn({signal}) uses to release
+   * its AbortSignal listener — removing it leaks one listener + child reference
+   * per respawn) and silences late output so a stale 'heroku >' can't mark a new
+   * process ready and a late 'error' (e.g. a failed kill) can't go unhandled.
+   *
+   * @param child the child process to tear down
+   */
+  private killChild(child: ChildProcess): void {
+    child.removeAllListeners('close');
+    child.removeAllListeners('error');
+    // Keep an error sink so a post-kill 'error' doesn't become an uncaught throw.
+    child.on('error', () => {});
+    child.stdout?.removeAllListeners('data');
+    child.stderr?.removeAllListeners('data');
+    if (process.platform === 'win32' && typeof child.pid === 'number') {
+      // shell: true on Windows means `child` is cmd.exe; child.kill() leaves the
+      // heroku/node grandchild running. Kill the whole tree (W-24704374).
+      try {
+        HerokuREPL.spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f']);
+      } catch {
+        // Fall through to child.kill() below.
+      }
+    }
+    child.kill();
+  }
+
+  /**
+   * Clears any pending unexpected-close restart timer.
+   */
+  private clearRestartTimeout(): void {
+    clearTimeout(this.restartTimeoutId);
+    this.restartTimeoutId = undefined;
   }
 
   /**
@@ -380,17 +499,19 @@ export class HerokuREPL extends EventEmitter {
       return;
     }
     this.isReady = false;
+    // Cancel any pending unexpected-close restart so it can't respawn the
+    // process we are about to intentionally tear down.
+    this.clearRestartTimeout();
     // NB: do NOT call pauseQueue() here. The async iterator is already parked on
     // the current `pauseIterator` promise (created when the last command drained
-    // the queue). Replacing it would orphan the promise the iterator is awaiting,
-    // so the next executeCommand would resolve a brand-new resolver the iterator
-    // is not listening to — the respawned process would come up but the queued
-    // command would never be written to its stdin, hanging the call (W-24704373).
+    // the queue). pauseQueue() is now idempotent and would no-op, but leaving the
+    // parked promise untouched makes the intent explicit: the next executeCommand
+    // resolves the exact promise the iterator is awaiting, so the respawned
+    // process receives the queued command instead of hanging (W-24704373).
     if (this.process) {
-      // Remove listeners first so the 'close' handler does not treat this
-      // intentional teardown as an unexpected exit and restart the process.
-      this.process.removeAllListeners();
-      this.process.kill();
+      // killChild detaches our listeners first so the 'close' handler does not
+      // treat this intentional teardown as an unexpected exit and restart.
+      this.killChild(this.process);
       this.process = undefined;
     }
   }
@@ -399,9 +520,15 @@ export class HerokuREPL extends EventEmitter {
    * Handles the abort event
    */
   private onAbort = (): void => {
-    this.commandQueue.length = 0;
+    // Settle any in-flight/queued commands so their awaiters don't hang when the
+    // instance is disposed. (The signal-handler dispose path exits the process,
+    // but a programmatic dispose should not strand pending callers.)
+    while (this.commandQueue.length > 0) {
+      this.commandQueue.shift()?.resolver('The REPL process was shut down before the command completed.');
+    }
     this.pauseIteratorResolver?.();
     clearTimeout(this.commandTimeoutId);
+    this.clearRestartTimeout();
     this.clearIdleTimeout();
   };
 }

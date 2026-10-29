@@ -35,7 +35,7 @@ describe('HerokuREPL', () => {
     // affected by the idle timer; the dedicated idle tests opt back in.
     repl = new HerokuREPL(500, 0);
 
-    // The process is started lazily (W-24704373 / #180). Most tests below assume
+    // The process is started lazily. Most tests below assume
     // a spawned, ready process, so prime one explicitly here.
     repl['initializeProcess']();
     mockProcess.stdout.emit('data', 'heroku >');
@@ -186,7 +186,7 @@ describe('HerokuREPL', () => {
     });
   });
 
-  describe('lazy start and idle teardown (W-24704373 / #180)', () => {
+  describe('lazy start and idle teardown', () => {
     // These tests construct their own REPL instances so they can observe spawn
     // behavior from a clean slate, independent of the primed shared fixture.
 
@@ -291,11 +291,11 @@ describe('HerokuREPL', () => {
       idleRepl[Symbol.dispose]();
     });
 
-    it('delivers and resolves a command issued after an idle teardown (regression: orphaned iterator hang)', async () => {
-      // Regression for the respawn hang: tearing the process down must not swap
-      // out the pauseIterator promise the async iterator is parked on, otherwise
-      // the next command's resolver wakes a promise nobody is awaiting and the
-      // respawned process never receives the queued command (W-24704373 / #180).
+    it('delivers and resolves a command issued after an idle teardown', async () => {
+      // Tearing the process down must not swap out the pauseIterator promise the
+      // async iterator is parked on, otherwise the next command's resolver wakes a
+      // promise nobody is awaiting and the respawned process never receives the
+      // queued command — the request would hang forever.
       repl[Symbol.dispose]();
       spawnStub.resetHistory();
 
@@ -365,6 +365,169 @@ describe('HerokuREPL', () => {
     });
   });
 
+  describe('respawn and failure hardening', () => {
+    it('resolves a command issued after an unexpected close re-parks the iterator', async () => {
+      // The 'close' handler calls pauseQueue() while the async iterator is parked
+      // on the current pauseIterator promise. pauseQueue() must be idempotent, or
+      // it orphans that promise and the post-close command never reaches stdin.
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      // First command completes, draining the queue and parking the iterator.
+      const first = r.executeCommand('apps');
+      setTimeout(() => mockProcess.stdout.emit('data', 'first\n<<<END RESULTS>>>'));
+      expect(await first).to.include('first');
+
+      // Unexpected close (code 1) restarts the process and calls pauseQueue().
+      mockProcess.emit('close', 1);
+      // Respawned process signals ready.
+      mockProcess.stdout.emit('data', 'heroku >');
+
+      // A command issued after the close must reach stdin and actually resolve.
+      const second = r.executeCommand('addons');
+      setTimeout(() => mockProcess.stdout.emit('data', 'second\n<<<END RESULTS>>>'));
+      expect(await second).to.include('second');
+
+      r[Symbol.dispose]();
+    });
+
+    it('settles a queued command instead of hanging when no CLI is available', async () => {
+      repl[Symbol.dispose]();
+      const spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync').returns({
+        error: new Error('not found'),
+        status: 1,
+        stdout: ''
+      } as any);
+
+      const r = new HerokuREPL(500, 0);
+      const fatalSpy = sinon.spy();
+      r.on('fatalError', fatalSpy);
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('No suitable Heroku CLI found');
+      expect(fatalSpy.called).to.be.true;
+
+      r[Symbol.dispose]();
+      spawnSyncStub.restore();
+    });
+
+    it('settles a queued command instead of hanging when spawn throws', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.restore();
+      const badSpawn = sinon.stub(HerokuREPL, 'spawn').throws(new Error('spawn boom'));
+
+      const r = new HerokuREPL(500, 0);
+      const fatalSpy = sinon.spy();
+      r.on('fatalError', fatalSpy);
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('spawn boom');
+      expect(fatalSpy.called).to.be.true;
+
+      r[Symbol.dispose]();
+      badSpawn.restore();
+    });
+
+    it('settles a command if the process spawns but never becomes ready', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      // Never emit 'heroku >': the process is up but never ready to dispatch.
+      const result = await r.executeCommand('apps');
+      expect(result).to.include('The command failed to complete in 500ms');
+
+      r[Symbol.dispose]();
+    });
+
+    it('resolves the CLI once and reuses it across respawns', () => {
+      repl[Symbol.dispose]();
+      const spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync');
+      spawnSyncStub.withArgs('heroku', ['version'], sinon.match.any).returns({
+        error: null,
+        status: 0,
+        stdout: 'heroku/11.0.0 (darwin-x64) node-v18.17.0'
+      } as any);
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      r['initializeProcess']();
+      r['initializeProcess']();
+
+      const herokuProbes = spawnSyncStub.getCalls().filter((c) => c.args[0] === 'heroku').length;
+      expect(herokuProbes).to.equal(1);
+
+      r[Symbol.dispose]();
+      spawnSyncStub.restore();
+    });
+
+    it('ignores late stdout from a torn-down process', () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      expect(r['isReady']).to.be.true;
+
+      r['teardownIdleProcess']();
+      expect(r['isReady']).to.be.false;
+
+      // Late output from the killed child must not revive readiness.
+      mockProcess.stdout.emit('data', 'heroku >');
+      expect(r['isReady']).to.be.false;
+
+      r[Symbol.dispose]();
+    });
+
+    it('settles pending commands when the instance is disposed mid-flight', async () => {
+      repl[Symbol.dispose]();
+      spawnStub.resetHistory();
+
+      const r = new HerokuREPL(500, 0);
+      r['initializeProcess']();
+      mockProcess.stdout.emit('data', 'heroku >');
+      void (async () => {
+        for await (const command of r) {
+          // drain
+        }
+      })();
+
+      const pending = r.executeCommand('apps');
+      // Dispose before the command completes.
+      r[Symbol.dispose]();
+
+      const result = await pending;
+      expect(result).to.include('shut down before the command completed');
+    });
+  });
+
   describe('getHerokuCliCommandAndArgs', () => {
     let spawnSyncStub: sinon.SinonStub;
     let fatalSpy: sinon.SinonSpy;
@@ -373,6 +536,10 @@ describe('HerokuREPL', () => {
       spawnSyncStub = sinon.stub(HerokuREPL, 'spawnSync');
       fatalSpy = sinon.spy();
       repl.on('fatalError', fatalSpy);
+      // The shared fixture already resolved (and now caches) a CLI via the real
+      // spawnSync in its beforeEach. Clear that cache so these tests exercise the
+      // resolver against the stub rather than returning the cached real result.
+      repl['resolvedCli'] = undefined;
     });
 
     afterEach(() => {
