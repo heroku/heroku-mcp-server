@@ -26,7 +26,8 @@ describe('Maintenance Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('maintenance_on');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
@@ -83,7 +84,8 @@ describe('Maintenance Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('maintenance_off');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {

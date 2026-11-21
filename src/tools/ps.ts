@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import type { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import type { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { destructiveTool, readOnlyTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for listing processes.
@@ -55,6 +56,7 @@ export const registerPsListTool = (server: McpServer, herokuRepl: HerokuREPL): v
     'ps_list',
     'List and monitor Heroku app dynos. View running dynos, check status/health, monitor process states, verify configurations.',
     psListOptionsSchema.shape,
+    readOnlyTool('List Dynos'),
     async (options: PsListOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PS)
         .addFlags({
@@ -80,6 +82,7 @@ export const registerPsScaleTool = (server: McpServer, herokuRepl: HerokuREPL): 
     'ps_scale',
     'Scale Heroku app dynos. Adjust quantities, change sizes, view formation details, manage resources.',
     psScaleOptionsSchema.shape,
+    destructiveTool('Scale Dynos'),
     async (options: PsScaleOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PS_SCALE)
         .addFlags({
@@ -105,6 +108,7 @@ export const registerPsRestartTool = (server: McpServer, herokuRepl: HerokuREPL)
     'ps_restart',
     'Restart Heroku app processes. Restart specific dynos, process types, or all dynos. Reset dyno states selectively.',
     psRestartOptionsSchema.shape,
+    destructiveTool('Restart Dynos'),
     async (options: PsRestartOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PS_RESTART)
         .addFlags({

@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import type { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import type { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { destructiveTool, readOnlyTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for executing PostgreSQL queries.
@@ -158,6 +159,7 @@ export const registerPgPsqlTool = (server: McpServer, herokuRepl: HerokuREPL): v
     'pg_psql',
     'Execute SQL queries: analyze, debug, modify schema, manage data',
     pgPsqlOptionsSchema.shape,
+    destructiveTool('Run PostgreSQL Query'),
     async (options: PgPsqlOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_PSQL)
         .addFlags({
@@ -186,6 +188,7 @@ export const registerPgInfoTool = (server: McpServer, herokuRepl: HerokuREPL): v
     'pg_info',
     'View database status: config, metrics, resources, health',
     pgInfoOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Info'),
     async (options: PgInfoOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_INFO)
         .addFlags({
@@ -211,6 +214,7 @@ export const registerPgPsTool = (server: McpServer, herokuRepl: HerokuREPL): voi
     'pg_ps',
     'Monitor active queries: progress, resources, performance',
     pgPsOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Active Queries'),
     async (options: PgPsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_PS)
         .addFlags({
@@ -237,6 +241,7 @@ export const registerPgLocksTool = (server: McpServer, herokuRepl: HerokuREPL): 
     'pg_locks',
     'Analyze locks: blocked queries, deadlocks, concurrency',
     pgLocksOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Locks'),
     async (options: PgLocksOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_LOCKS)
         .addFlags({
@@ -263,6 +268,7 @@ export const registerPgOutliersTool = (server: McpServer, herokuRepl: HerokuREPL
     'pg_outliers',
     'Find resource-heavy queries: performance, patterns, optimization',
     pgOutliersOptionsSchema.shape,
+    destructiveTool('PostgreSQL Query Outliers'),
     async (options: PgOutliersOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_OUTLIERS)
         .addFlags({
@@ -291,6 +297,7 @@ export const registerPgCredentialsTool = (server: McpServer, herokuRepl: HerokuR
     'pg_credentials',
     'Manage access: credentials, permissions, security, monitoring',
     pgCredentialsOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Credentials'),
     async (options: PgCredentialsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_CREDENTIALS)
         .addFlags({
@@ -316,6 +323,7 @@ export const registerPgKillTool = (server: McpServer, herokuRepl: HerokuREPL): v
     'pg_kill',
     'Stop processes: stuck queries, blocking transactions, runaway operations',
     pgKillOptionsSchema.shape,
+    destructiveTool('Kill PostgreSQL Process'),
     async (options: PgKillOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_KILL)
         .addFlags({
@@ -345,6 +353,7 @@ export const registerPgMaintenanceTool = (server: McpServer, herokuRepl: HerokuR
     'pg_maintenance',
     'Track maintenance: windows, schedules, progress, planning',
     pgMaintenanceOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Maintenance'),
     async (options: PgMaintenanceOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_MAINTENANCE)
         .addFlags({
@@ -370,6 +379,7 @@ export const registerPgBackupsTool = (server: McpServer, herokuRepl: HerokuREPL)
     'pg_backups',
     'Manage backups: schedules, status, verification, recovery',
     pgBackupsOptionsSchema.shape,
+    readOnlyTool('PostgreSQL Backups'),
     async (options: PgBackupsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_BACKUPS)
         .addFlags({
@@ -394,6 +404,7 @@ export const registerPgUpgradeTool = (server: McpServer, herokuRepl: HerokuREPL)
     'pg_upgrade',
     'Upgrade PostgreSQL: version migration, compatibility, safety',
     pgUpgradeOptionsSchema.shape,
+    destructiveTool('Upgrade PostgreSQL'),
     async (options: PgUpgradeOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PG_UPGRADE)
         .addFlags({

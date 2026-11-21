@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { readOnlyTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for listing Heroku Teams with output format options.
@@ -40,6 +41,7 @@ export const registerListTeamsTool = (server: McpServer, herokuRepl: HerokuREPL)
     'list_teams',
     'Lists accessible Heroku Teams. Use for: viewing teams, checking membership, getting team metadata, and verifying access. JSON output available.',
     listTeamsOptionsSchema.shape,
+    readOnlyTool('List Teams'),
     async (options: ListTeamsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_TEAMS).addFlags({ json: options.json }).build();
 

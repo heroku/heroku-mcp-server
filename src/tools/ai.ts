@@ -9,6 +9,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { readOnlyTool, writeTool } from '../utils/tool-annotations.js';
 /**
  * Register list_ai_available_models tool
  *
@@ -20,6 +21,7 @@ export const registerListAiAvailableModelsTool = (server: McpServer, herokuRepl:
     'list_ai_available_models',
     'List available AI inference models',
     z.object({}).shape,
+    readOnlyTool('List AI Models'),
     async (): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_AI_AVAILABLE_MODELS).build();
 
@@ -61,6 +63,7 @@ export const registerProvisionAiModelTool = (server: McpServer, herokuRepl: Hero
     'provision_ai_model',
     'Provision AI model access for app',
     provisionAiModelOptionsSchema.shape,
+    writeTool('Provision AI Model'),
     async (options: ProvisionAiModelOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PROVISION_AI_MODEL)
         .addPositionalArguments({ modelName: options.modelName })
@@ -165,6 +168,7 @@ export const registerMakeAiInferenceTool = (server: McpServer, herokuRepl: Herok
     'make_ai_inference',
     'Make inference request to Heroku AI API',
     aiInferenceOptionsSchema.shape,
+    writeTool('Make AI Inference'),
     async (options: AiInferenceOptions): Promise<McpToolResponse> => {
       // Passing a json string to the opts flag is brittle,
       // so we write the json to a file and pass the file path instead
