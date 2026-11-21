@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { destructiveTool, readOnlyTool, writeTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for listing Heroku apps with filters
@@ -33,6 +34,7 @@ export const registerListAppsTool = (server: McpServer, herokuRepl: HerokuREPL):
     'list_apps',
     'List Heroku apps: owned, collaborator access, team/space filtering',
     listAppsOptionsSchema.shape,
+    readOnlyTool('List Apps'),
     async (options: ListAppsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_APPS)
         .addFlags({
@@ -73,6 +75,7 @@ export const registerGetAppInfoTool = (server: McpServer, herokuRepl: HerokuREPL
     'get_app_info',
     'Get app details: config, dynos, addons, access, domains',
     getAppInfoOptionsSchema.shape,
+    readOnlyTool('Get App Info'),
     async (options: GetAppInfoOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.GET_APP_INFO)
         .addFlags({
@@ -113,6 +116,7 @@ export const registerCreateAppTool = (server: McpServer, herokuRepl: HerokuREPL)
     'create_app',
     'Create app: custom name, region (US/EU), team, private space',
     createAppOptionsSchema.shape,
+    writeTool('Create App'),
     async (options: CreateAppOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_APP)
         .addPositionalArguments({ app: options.app })
@@ -153,6 +157,7 @@ export const registerRenameAppTool = (server: McpServer, herokuRepl: HerokuREPL)
     'rename_app',
     'Rename app: validate and update app name',
     renameAppOptionsSchema.shape,
+    destructiveTool('Rename App'),
     async (options: RenameAppOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.RENAME_APP)
         .addFlags({ app: options.app })

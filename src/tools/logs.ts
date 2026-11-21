@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { readOnlyTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for app logs retrieval with filtering options
@@ -33,6 +34,7 @@ export const registerGetAppLogsTool = (server: McpServer, herokuRepl: HerokuREPL
     'get_app_logs',
     'App logs: monitor/debug/filter by dyno/process/source',
     getAppGetAppLogsOptionsSchema.shape,
+    readOnlyTool('Get App Logs'),
     async (options: GetAppLogsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LOGS)
         .addFlags({

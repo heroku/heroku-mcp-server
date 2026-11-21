@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { readOnlyTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for listing Heroku Private Spaces with output format options.
@@ -34,6 +35,7 @@ export const registerListPrivateSpacesTool = (server: McpServer, herokuRepl: Her
     'list_private_spaces',
     'Lists Heroku Private Spaces with CIDR blocks, regions, compliance and capacity details. JSON output supported.',
     listPrivateSpacesOptionsSchema.shape,
+    readOnlyTool('List Private Spaces'),
     async (options: ListPrivateSpacesOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_PRIVATE_SPACES).addFlags({ json: options.json }).build();
 

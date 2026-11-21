@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { readOnlyTool, writeTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for listing Heroku add-ons with filters
@@ -37,6 +38,7 @@ export const registerListAddonsTool = (server: McpServer, herokuRepl: HerokuREPL
     'list_addons',
     'List add-ons: all apps or specific app, detailed metadata',
     listAddonsOptionsSchema.shape,
+    readOnlyTool('List Add-ons'),
     async (options: ListAddonsOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDONS)
         .addFlags({
@@ -78,6 +80,7 @@ export const registerGetAddonInfoTool = (server: McpServer, herokuRepl: HerokuRE
     'get_addon_info',
     'Get add-on details: plan, state, billing',
     getAddonInfoOptionsSchema.shape,
+    readOnlyTool('Get Add-on Info'),
     async (options: GetAddonInfoOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.GET_ADDON_INFO)
         .addFlags({ app: options.app })
@@ -116,6 +119,7 @@ export const registerCreateAddonTool = (server: McpServer, herokuRepl: HerokuREP
     'create_addon',
     'Create add-on: specify service, plan, custom names',
     createAddonOptionsSchema.shape,
+    writeTool('Create Add-on'),
     async (options: CreateAddonOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.CREATE_ADDON)
         .addFlags({
@@ -158,6 +162,7 @@ export const registerListAddonServicesTool = (server: McpServer, herokuRepl: Her
     'list_addon_services',
     'List available add-on services and features',
     listAddonServicesOptionsSchema.shape,
+    readOnlyTool('List Add-on Services'),
     async (options: ListAddonServicesOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_SERVICES)
         .addFlags({
@@ -195,6 +200,7 @@ export const registerListAddonPlansTool = (server: McpServer, herokuRepl: Heroku
     'list_addon_plans',
     'List service plans: features, pricing, availability',
     listAddonPlansOptionsSchema.shape,
+    readOnlyTool('List Add-on Plans'),
     async (options: ListAddonPlansOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.LIST_ADDON_PLANS)
         .addFlags({

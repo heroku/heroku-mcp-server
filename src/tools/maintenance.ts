@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { destructiveTool, writeTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for maintenance mode operations on a Heroku application.
@@ -33,6 +34,7 @@ export const registerMaintenanceOnTool = (server: McpServer, herokuRepl: HerokuR
     'maintenance_on',
     'Enable maintenance mode and redirect traffic for a Heroku app',
     maintenanceModeOptionsSchema.shape,
+    destructiveTool('Enable Maintenance Mode'),
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_ON)
         .addFlags({
@@ -58,6 +60,7 @@ export const registerMaintenanceOffTool = (server: McpServer, herokuRepl: Heroku
     'maintenance_off',
     'Disable maintenance mode and restore normal app operations',
     maintenanceModeOptionsSchema.shape,
+    writeTool('Disable Maintenance Mode'),
     async (options: MaintenanceModeOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.MAINTENANCE_OFF)
         .addFlags({

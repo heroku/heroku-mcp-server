@@ -6,6 +6,7 @@ import { CommandBuilder } from '../utils/command-builder.js';
 import { TOOL_COMMAND_MAP } from '../utils/tool-commands.js';
 import type { HerokuREPL } from '../repl/heroku-cli-repl.js';
 import type { McpToolResponse } from '../utils/mcp-tool-response.js';
+import { destructiveTool, readOnlyTool, writeTool } from '../utils/tool-annotations.js';
 
 /**
  * Schema for creating a new pipeline.
@@ -68,6 +69,7 @@ export const registerPipelinesCreateTool = (server: McpServer, herokuRepl: Herok
     'pipelines_create',
     'Creates new Heroku deployment pipeline with configurable stages, apps, and team settings',
     pipelinesCreateOptionsSchema.shape,
+    writeTool('Create Pipeline'),
     async (options: PipelinesCreateOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PIPELINES_CREATE)
         .addFlags({
@@ -95,6 +97,7 @@ export const registerPipelinesPromoteTool = (server: McpServer, herokuRepl: Hero
     'pipelines_promote',
     'Promotes apps between pipeline stages with configurable target applications',
     pipelinesPromoteOptionsSchema.shape,
+    destructiveTool('Promote Pipeline'),
     async (options: PipelinesPromoteOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PIPELINES_PROMOTE)
         .addFlags({
@@ -120,6 +123,7 @@ export const registerPipelinesListTool = (server: McpServer, herokuRepl: HerokuR
     'pipelines_list',
     'Lists accessible Heroku pipelines with ownership and configuration details',
     pipelinesListOptionsSchema.shape,
+    readOnlyTool('List Pipelines'),
     async (options: PipelinesListOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PIPELINES)
         .addFlags({
@@ -144,6 +148,7 @@ export const registerPipelinesInfoTool = (server: McpServer, herokuRepl: HerokuR
     'pipelines_info',
     'Displays detailed pipeline configuration, stages, and connected applications',
     pipelinesInfoOptionsSchema.shape,
+    readOnlyTool('Get Pipeline Info'),
     async (options: PipelinesInfoOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder(TOOL_COMMAND_MAP.PIPELINES_INFO)
         .addFlags({
@@ -169,6 +174,7 @@ export const registerPipelinesTool = (server: McpServer, herokuRepl: HerokuREPL)
     'pipelines',
     'Lists and manages Heroku pipelines with configuration visibility',
     pipelinesOptionsSchema.shape,
+    readOnlyTool('Pipelines'),
     async (options: PipelinesOptions): Promise<McpToolResponse> => {
       const command = new CommandBuilder('pipelines')
         .addFlags({

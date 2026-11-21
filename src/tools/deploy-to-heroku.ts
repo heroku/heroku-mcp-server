@@ -13,6 +13,7 @@ import { generateRequestInit } from '../utils/generate-request-init.js';
 import { packSources } from '../utils/tarball.js';
 import DynoService from '../services/dyno-service.js';
 import { RendezvousConnection } from '../services/rendezvous.js';
+import { destructiveTool } from '../utils/tool-annotations.js';
 
 const appJsonSchema = await import('../utils/app-json.schema.json', { with: { type: 'json' } });
 
@@ -644,6 +645,7 @@ export const registerDeployToHerokuTool = (server: McpServer): void => {
     'Use for all deployments. Deploys new/existing apps, with or without teams/spaces, and env vars to Heroku. ' +
       'Ask for app name if missing. Requires valid app.json via appJson param.',
     deployToHerokuSchema.shape,
+    destructiveTool('Deploy to Heroku'),
     async (options: DeployToHerokuParams): Promise<McpToolResponse> => {
       const deployToHeroku = new DeployToHeroku();
       const result = await deployToHeroku.run({
@@ -751,6 +753,7 @@ export const registerDeployOneOffDynoTool = (server: McpServer): void => {
     'deploy_one_off_dyno',
     execToolSchemaDescription,
     deployOneOffDynoSchema.shape,
+    destructiveTool('Run One-off Dyno'),
     async (options: OneOffDynoConfig): Promise<McpToolResponse> => {
       const deployToHeroku = new DeployToHeroku();
       const result = (await deployToHeroku.run(options)) as OneOffDynoResult;

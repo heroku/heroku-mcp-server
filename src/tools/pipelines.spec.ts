@@ -32,7 +32,8 @@ describe('Pipeline Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('pipelines_create');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
@@ -94,7 +95,8 @@ describe('Pipeline Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('pipelines_promote');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
@@ -138,7 +140,8 @@ describe('Pipeline Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('pipelines_list');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with no parameters', async () => {
@@ -178,7 +181,8 @@ describe('Pipeline Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('pipelines_info');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with required parameters', async () => {
@@ -222,7 +226,8 @@ describe('Pipeline Tools', () => {
       expect(tool.firstCall.args[0]).to.equal('pipelines');
       expect(tool.firstCall.args[1]).to.be.a('string');
       expect(tool.firstCall.args[2]).to.be.an('object');
-      expect(tool.firstCall.args[3]).to.be.a('function');
+      expect(tool.firstCall.args[3]).to.have.property('title').that.is.a('string');
+      expect(tool.firstCall.args[4]).to.be.a('function');
     });
 
     it('should build correct command with no parameters', async () => {
